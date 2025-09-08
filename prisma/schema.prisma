@@ -1,4 +1,6 @@
-// prisma/schema.prisma
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,21 +10,41 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ================================================================
+// ENUMS
+// ================================================================
+
+// Removed enums - using string fields instead
+
+// ================================================================
+// USER MODEL
+// ================================================================
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
   password  String
-  firstName String
-  lastName  String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   // Relations
-  userRoles UserRole[]
-  
+  userRoles            UserRole[]
+  createdCompanies     Company[]    @relation("CompanyCreatedBy")
+  modifiedCompanies    Company[]    @relation("CompanyModifiedBy")
+  createdPOCs          POC[]        @relation("POCCreatedBy")
+  modifiedPOCs         POC[]        @relation("POCModifiedBy")
+  createdJobPostings   JobPosting[] @relation("JobPostingCreatedBy")
+  modifiedJobPostings  JobPosting[] @relation("JobPostingModifiedBy")
+
   @@map("users")
 }
+
+// ================================================================
+// ROLE MODEL
+// ================================================================
 
 model Role {
   id          String   @id @default(cuid())
@@ -40,6 +62,10 @@ model Role {
   @@map("roles")
 }
 
+// ================================================================
+// PERMISSION MODEL
+// ================================================================
+
 model Permission {
   id       String @id @default(cuid())
   name     String @unique
@@ -52,6 +78,10 @@ model Permission {
   
   @@map("permissions")
 }
+
+// ================================================================
+// USERROLE MODEL
+// ================================================================
 
 model UserRole {
   id     String @id @default(cuid())
@@ -66,6 +96,10 @@ model UserRole {
   @@map("user_roles")
 }
 
+// ================================================================
+// ROLEPERMISSION MODEL
+// ================================================================
+
 model RolePermission {
   id           String @id @default(cuid())
   roleId       String
@@ -77,4 +111,103 @@ model RolePermission {
   
   @@unique([roleId, permissionId])
   @@map("role_permissions")
+}
+
+// ================================================================
+// COMPANY MODEL
+// ================================================================
+
+model Company {
+  id               String   @id @default(cuid())
+  name             String
+  website          String?
+  industry         String
+  location         String
+  size             String   // Changed from CompanySize enum to string
+  description      String?
+  agreementStatus  String   @map("agreement_status") // Changed from AgreementStatus enum to string
+  fee              Decimal? @db.Decimal(10, 2)
+  paymentTerms     String?  @map("payment_terms")
+  warranty         String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  
+  // Foreign Keys
+  createdById      String?  @map("created_by_id")
+  modifiedById     String?  @map("modified_by_id")
+
+  // Relations
+  createdBy        User?    @relation("CompanyCreatedBy", fields: [createdById], references: [id])
+  modifiedBy       User?    @relation("CompanyModifiedBy", fields: [modifiedById], references: [id])
+  pocs             POC[]
+  jobPostings      JobPosting[]
+
+  @@map("companies")
+}
+
+// ================================================================
+// POC MODEL
+// ================================================================
+
+model POC {
+  id           String   @id @default(cuid())
+  companyId    String   @map("company_id")
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  email        String   @unique
+  designation  String
+  location     String
+  phone        String?
+  mobile       String?
+  department   String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  // Foreign Keys
+  createdById  String?  @map("created_by_id")
+  modifiedById String?  @map("modified_by_id")
+
+  // Relations
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy    User?    @relation("POCCreatedBy", fields: [createdById], references: [id])
+  modifiedBy   User?    @relation("POCModifiedBy", fields: [modifiedById], references: [id])
+
+  @@map("pocs")
+}
+
+// ================================================================
+// JOB POSTING MODEL
+// ================================================================
+
+model JobPosting {
+  id              String   @id @default(cuid())
+  companyId       String   @map("company_id")
+  companyName     String   @map("company_name")
+  title           String
+  location        String
+  jobLink         String?  @map("job_link")
+  category        String
+  experienceRange String   @map("experience_range")
+  salaryRange     String   @map("salary_range")
+  description     String   @db.Text
+  sourceUrl       String?  @map("source_url")
+  timeZone        String?  @map("time_zone")
+  additionalNotes String?  @map("additional_notes") @db.Text
+  createdBy       String   @map("created_by")
+  modifiedBy      String?  @map("modified_by")
+  bdmAssigned     String?  @map("bdm_assigned")
+  status          String   @default("Active") // Changed from JobStatus enum to string
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  // Foreign Keys
+  createdById     String?  @map("created_by_id")
+  modifiedById    String?  @map("modified_by_id")
+
+  // Relations
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdByUser   User?    @relation("JobPostingCreatedBy", fields: [createdById], references: [id])
+  modifiedByUser  User?    @relation("JobPostingModifiedBy", fields: [modifiedById], references: [id])
+
+  @@map("job_postings")
 }

@@ -4,8 +4,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 // Import routes
-const authRoutes = require('./routes/auth.routes');
-const userRoutes = require('./routes/user.routes');
+const apiRoutes = require('./routes');
 
 const app = express();
 
@@ -25,8 +24,7 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
+app.use('/api', apiRoutes);
 
 // 404 handler for undefined routes - fixed for Express 5.x
 app.use((req, res) => {

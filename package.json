@@ -9,7 +9,11 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "node prisma/seed.js",
+    "db:seed": "node prisma/seeds/main.seed.js",
+    "db:seed:user": "node prisma/seed.js",
+    "db:seed:company": "node prisma/seeds/company.seed.js",
+    "db:seed:poc": "node prisma/seeds/poc.seed.js",
+    "db:seed:job": "node prisma/seeds/job-posting.seed.js",
     "db:studio": "prisma studio"
   },
   "keywords": [],
