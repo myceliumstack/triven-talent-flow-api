@@ -226,26 +226,44 @@ class JobPostingService {
       throw new Error('Job posting not found');
     }
 
-    const jobPosting = await prisma.jobPosting.update({
-      where: { id },
-      data: {
-        ...updateData,
-        modifiedById
-      },
-      include: {
-        company: {
-          select: { id: true, name: true, industry: true, location: true }
-        },
-        createdByUser: {
-          select: { id: true, firstName: true, lastName: true, email: true }
-        },
-        modifiedByUser: {
-          select: { id: true, firstName: true, lastName: true, email: true }
-        }
-      }
-    });
+    // Validate that the modifying user exists
+    if (modifiedById) {
+      const user = await prisma.user.findUnique({
+        where: { id: modifiedById }
+      });
 
-    return jobPosting;
+      if (!user) {
+        throw new Error('Invalid user ID: User not found');
+      }
+    }
+
+    try {
+      const jobPosting = await prisma.jobPosting.update({
+        where: { id },
+        data: {
+          ...updateData,
+          modifiedById
+        },
+        include: {
+          company: {
+            select: { id: true, name: true, industry: true, location: true }
+          },
+          createdByUser: {
+            select: { id: true, firstName: true, lastName: true, email: true }
+          },
+          modifiedByUser: {
+            select: { id: true, firstName: true, lastName: true, email: true }
+          }
+        }
+      });
+
+      return jobPosting;
+    } catch (error) {
+      if (error.code === 'P2003') {
+        throw new Error('Invalid user reference: The specified user does not exist');
+      }
+      throw error;
+    }
   }
 
   /**
