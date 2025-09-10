@@ -197,6 +197,7 @@ model JobPosting {
   modifiedBy      String?  @map("modified_by")
   bdmAssigned     String?  @map("bdm_assigned")
   status          String   @default("Active") // Changed from JobStatus enum to string
+  validation      Boolean  @default(false)
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
   

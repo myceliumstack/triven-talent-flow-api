@@ -19,6 +19,7 @@ class JobPostingController {
         experienceRange,
         location,
         bdmAssigned,
+        validation,
         sortBy,
         sortOrder
       } = req.query;
@@ -33,6 +34,7 @@ class JobPostingController {
         experienceRange,
         location,
         bdmAssigned,
+        validation: validation === 'true' ? true : validation === 'false' ? false : undefined,
         sortBy,
         sortOrder
       });
@@ -402,6 +404,76 @@ class JobPostingController {
       });
     } catch (error) {
       console.error('Error fetching job postings by status:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get job postings by validation status
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  async getJobPostingsByValidation(req, res) {
+    try {
+      const { validation } = req.params;
+      
+      // Convert string to boolean
+      const validationStatus = validation === 'true';
+
+      const jobPostings = await JobPostingService.getJobPostingsByValidation(validationStatus);
+
+      res.status(200).json({
+        success: true,
+        message: `Job postings with validation ${validationStatus ? 'enabled' : 'disabled'} retrieved successfully`,
+        data: { jobPostings }
+      });
+    } catch (error) {
+      console.error('Error fetching job postings by validation:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Update validation status of a job posting
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  async updateJobPostingValidation(req, res) {
+    try {
+      const { id } = req.params;
+      const { validation } = req.body;
+      const modifiedById = req.user.userId;
+
+      if (typeof validation !== 'boolean') {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation must be a boolean value'
+        });
+      }
+
+      const jobPosting = await JobPostingService.updateJobPostingValidation(id, validation, modifiedById);
+
+      res.status(200).json({
+        success: true,
+        message: 'Job posting validation status updated successfully',
+        data: { jobPosting }
+      });
+    } catch (error) {
+      console.error('Error updating job posting validation:', error);
+      
+      if (error.message === 'Job posting not found') {
+        return res.status(404).json({
+          success: false,
+          message: error.message
+        });
+      }
+
       res.status(500).json({
         success: false,
         message: 'Internal server error'

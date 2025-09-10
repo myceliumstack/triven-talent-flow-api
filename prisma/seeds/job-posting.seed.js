@@ -13,7 +13,6 @@ async function seedJobPostings(companies) {
     // TechCorp Solutions Job Postings
     {
       companyId: companies[0].id,
-      companyName: 'TechCorp Solutions',
       title: 'Senior Full Stack Developer',
       location: 'San Francisco, CA',
       jobLink: 'https://techcorp.com/careers/senior-fullstack-dev',
@@ -26,11 +25,11 @@ async function seedJobPostings(companies) {
       additionalNotes: 'Remote work available. Must have experience with AWS and Docker.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM001',
-      status: 'ACTIVE'
+      status: 'Active',
+      validation: true
     },
     {
       companyId: companies[0].id,
-      companyName: 'TechCorp Solutions',
       title: 'DevOps Engineer',
       location: 'San Francisco, CA',
       jobLink: 'https://techcorp.com/careers/devops-engineer',
@@ -43,13 +42,13 @@ async function seedJobPostings(companies) {
       additionalNotes: 'On-site position. Benefits include health insurance and stock options.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM001',
-      status: 'ACTIVE'
+      status: 'Active',
+      validation: true
     },
 
     // Global Finance Inc Job Postings
     {
       companyId: companies[1].id,
-      companyName: 'Global Finance Inc',
       title: 'Financial Analyst',
       location: 'New York, NY',
       jobLink: 'https://globalfinance.com/careers/financial-analyst',
@@ -62,11 +61,11 @@ async function seedJobPostings(companies) {
       additionalNotes: 'CFA certification preferred. Fast-paced environment.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM002',
-      status: 'ACTIVE'
+      status: 'Active',
+      validation: true
     },
     {
       companyId: companies[1].id,
-      companyName: 'Global Finance Inc',
       title: 'Risk Manager',
       location: 'New York, NY',
       jobLink: 'https://globalfinance.com/careers/risk-manager',
@@ -85,7 +84,6 @@ async function seedJobPostings(companies) {
     // HealthTech Innovations Job Postings
     {
       companyId: companies[2].id,
-      companyName: 'HealthTech Innovations',
       title: 'Frontend Developer',
       location: 'Boston, MA',
       jobLink: 'https://healthtech.com/careers/frontend-dev',
@@ -98,11 +96,11 @@ async function seedJobPostings(companies) {
       additionalNotes: 'Remote work available. Startup environment with growth opportunities.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM003',
-      status: 'ACTIVE'
+      status: 'Active',
+      validation: true
     },
     {
       companyId: companies[2].id,
-      companyName: 'HealthTech Innovations',
       title: 'Product Manager',
       location: 'Boston, MA',
       jobLink: 'https://healthtech.com/careers/product-manager',
@@ -115,13 +113,13 @@ async function seedJobPostings(companies) {
       additionalNotes: 'PMP certification preferred. Cross-functional team leadership required.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM003',
-      status: 'DRAFT'
+      status: 'Draft',
+      validation: false
     },
 
     // EcoGreen Energy Job Postings
     {
       companyId: companies[3].id,
-      companyName: 'EcoGreen Energy',
       title: 'Solar Engineer',
       location: 'Austin, TX',
       jobLink: 'https://ecogreen.com/careers/solar-engineer',
@@ -134,13 +132,13 @@ async function seedJobPostings(companies) {
       additionalNotes: 'PE license preferred. Field work required.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM004',
-      status: 'ACTIVE'
+      status: 'Active',
+      validation: true
     },
 
     // RetailMax Corporation Job Postings
     {
       companyId: companies[4].id,
-      companyName: 'RetailMax Corporation',
       title: 'E-commerce Manager',
       location: 'Chicago, IL',
       jobLink: 'https://retailmax.com/careers/ecommerce-manager',
@@ -153,11 +151,11 @@ async function seedJobPostings(companies) {
       additionalNotes: 'Analytics experience preferred. Performance bonus available.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM005',
-      status: 'ACTIVE'
+      status: 'Active',
+      validation: true
     },
     {
       companyId: companies[4].id,
-      companyName: 'RetailMax Corporation',
       title: 'Data Scientist',
       location: 'Chicago, IL',
       jobLink: 'https://retailmax.com/careers/data-scientist',
@@ -170,13 +168,13 @@ async function seedJobPostings(companies) {
       additionalNotes: 'PhD in Statistics or related field preferred. Big data experience required.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM005',
-      status: 'CLOSED'
+      status: 'Closed',
+      validation: true
     },
 
     // StartupHub Ventures Job Postings
     {
       companyId: companies[5].id,
-      companyName: 'StartupHub Ventures',
       title: 'Investment Analyst',
       location: 'Seattle, WA',
       jobLink: 'https://startuphub.com/careers/investment-analyst',
@@ -189,7 +187,8 @@ async function seedJobPostings(companies) {
       additionalNotes: 'MBA preferred. Fast-paced startup environment.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM006',
-      status: 'ACTIVE'
+      status: 'Active',
+      validation: true
     }
   ];
 

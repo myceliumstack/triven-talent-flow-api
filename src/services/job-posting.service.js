@@ -20,6 +20,7 @@ class JobPostingService {
       experienceRange,
       location,
       bdmAssigned,
+      validation,
       sortBy = 'createdAt',
       sortOrder = 'desc'
     } = options;
@@ -43,6 +44,7 @@ class JobPostingService {
     if (status) where.status = status;
     if (experienceRange) where.experienceRange = experienceRange;
     if (bdmAssigned) where.bdmAssigned = bdmAssigned;
+    if (typeof validation === 'boolean') where.validation = validation;
     if (location) {
       where.location = {
         contains: location,
@@ -407,12 +409,72 @@ class JobPostingService {
         location: true,
         category: true,
         status: true,
+        validation: true,
         company: {
           select: { name: true }
         }
       },
       take: 10,
       orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  /**
+   * Get job postings by validation status
+   * @param {boolean} validationStatus - Validation status (true/false)
+   * @returns {Promise<Array>} Job postings with the validation status
+   */
+  async getJobPostingsByValidation(validationStatus) {
+    return await prisma.jobPosting.findMany({
+      where: { validation: validationStatus },
+      include: {
+        company: {
+          select: { id: true, name: true, industry: true, location: true }
+        },
+        createdByUser: {
+          select: { id: true, firstName: true, lastName: true, email: true }
+        },
+        modifiedByUser: {
+          select: { id: true, firstName: true, lastName: true, email: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  /**
+   * Update validation status of a job posting
+   * @param {string} id - Job posting ID
+   * @param {boolean} validationStatus - New validation status
+   * @param {string} modifiedById - User ID who modified the job posting
+   * @returns {Promise<Object>} Updated job posting
+   */
+  async updateJobPostingValidation(id, validationStatus, modifiedById) {
+    const jobPosting = await prisma.jobPosting.findUnique({
+      where: { id }
+    });
+
+    if (!jobPosting) {
+      throw new Error('Job posting not found');
+    }
+
+    return await prisma.jobPosting.update({
+      where: { id },
+      data: {
+        validation: validationStatus,
+        modifiedById
+      },
+      include: {
+        company: {
+          select: { id: true, name: true, industry: true, location: true }
+        },
+        createdByUser: {
+          select: { id: true, firstName: true, lastName: true, email: true }
+        },
+        modifiedByUser: {
+          select: { id: true, firstName: true, lastName: true, email: true }
+        }
+      }
     });
   }
 }

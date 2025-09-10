@@ -77,7 +77,8 @@ const createJobPostingSchema = z.object({
   bdmAssigned: z.string().max(255, 'BDM assigned too long').optional(),
   status: z.enum(['Active', 'Closed', 'On Hold', 'Draft'], {
     errorMap: () => ({ message: 'Invalid job status' })
-  }).default('Active')
+  }).default('Active'),
+  validation: z.boolean().default(false)
 });
 
 const updateJobPostingSchema = createJobPostingSchema.partial().omit({ 

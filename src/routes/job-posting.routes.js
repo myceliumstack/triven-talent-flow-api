@@ -29,6 +29,9 @@ router.get('/category/:category', JobPostingController.getJobPostingsByCategory)
 // GET /api/job-postings/status/:status - Get job postings by status
 router.get('/status/:status', JobPostingController.getJobPostingsByStatus);
 
+// GET /api/job-postings/validation/:validation - Get job postings by validation status
+router.get('/validation/:validation', JobPostingController.getJobPostingsByValidation);
+
 // GET /api/job-postings/:id - Get job posting by ID
 router.get('/:id', JobPostingController.getJobPostingById);
 
@@ -49,6 +52,9 @@ router.put('/:id',
   validateRequest(updateJobPostingSchema), 
   JobPostingController.updateJobPosting
 );
+
+// PATCH /api/job-postings/:id/validation - Update validation status
+router.patch('/:id/validation', JobPostingController.updateJobPostingValidation);
 
 // DELETE /api/job-postings/:id - Delete job posting
 router.delete('/:id', JobPostingController.deleteJobPosting);
