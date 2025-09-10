@@ -188,6 +188,17 @@ class CompanyService {
       throw new Error('Company not found');
     }
 
+    // Validate that the modifying user exists
+    if (modifiedById) {
+      const user = await prisma.user.findUnique({
+        where: { id: modifiedById }
+      });
+
+      if (!user) {
+        throw new Error('Invalid user ID: User not found');
+      }
+    }
+
     // Check for name conflict if name is being updated
     if (updateData.name && updateData.name !== existingCompany.name) {
       const nameConflict = await prisma.company.findFirst({
@@ -202,23 +213,30 @@ class CompanyService {
       }
     }
 
-    const company = await prisma.company.update({
-      where: { id },
-      data: {
-        ...updateData,
-        modifiedById
-      },
-      include: {
-        createdBy: {
-          select: { id: true, firstName: true, lastName: true, email: true }
+    try {
+      const company = await prisma.company.update({
+        where: { id },
+        data: {
+          ...updateData,
+          modifiedById
         },
-        modifiedBy: {
-          select: { id: true, firstName: true, lastName: true, email: true }
+        include: {
+          createdBy: {
+            select: { id: true, firstName: true, lastName: true, email: true }
+          },
+          modifiedBy: {
+            select: { id: true, firstName: true, lastName: true, email: true }
+          }
         }
-      }
-    });
+      });
 
-    return company;
+      return company;
+    } catch (error) {
+      if (error.code === 'P2003') {
+        throw new Error('Invalid user reference: The specified user does not exist');
+      }
+      throw error;
+    }
   }
 
   /**
