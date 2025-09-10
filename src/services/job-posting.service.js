@@ -33,8 +33,8 @@ class JobPostingService {
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
-        { companyName: { contains: search, mode: 'insensitive' } },
-        { location: { contains: search, mode: 'insensitive' } }
+        { location: { contains: search, mode: 'insensitive' } },
+        { company: { name: { contains: search, mode: 'insensitive' } } }
       ];
     }
     
@@ -396,18 +396,20 @@ class JobPostingService {
         OR: [
           { title: { contains: query, mode: 'insensitive' } },
           { description: { contains: query, mode: 'insensitive' } },
-          { companyName: { contains: query, mode: 'insensitive' } },
           { location: { contains: query, mode: 'insensitive' } },
-          { category: { contains: query, mode: 'insensitive' } }
+          { category: { contains: query, mode: 'insensitive' } },
+          { company: { name: { contains: query, mode: 'insensitive' } } }
         ]
       },
       select: {
         id: true,
         title: true,
-        companyName: true,
         location: true,
         category: true,
-        status: true
+        status: true,
+        company: {
+          select: { name: true }
+        }
       },
       take: 10,
       orderBy: { createdAt: 'desc' }

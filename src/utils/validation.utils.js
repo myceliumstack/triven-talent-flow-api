@@ -62,7 +62,6 @@ const updateCompanySchema = createCompanySchema.partial();
 // Job Posting validation schemas
 const createJobPostingSchema = z.object({
   companyId: z.string().cuid('Invalid company ID'),
-  companyName: z.string().min(1, 'Company name is required').max(255, 'Company name too long'),
   title: z.string().min(1, 'Job title is required').max(255, 'Job title too long'),
   location: z.string().min(1, 'Job location is required').max(255, 'Location too long'),
   jobLink: z.string().url('Invalid job link URL').optional().or(z.literal('')),
@@ -82,8 +81,7 @@ const createJobPostingSchema = z.object({
 });
 
 const updateJobPostingSchema = createJobPostingSchema.partial().omit({ 
-  companyId: true, 
-  companyName: true 
+  companyId: true
 });
 
 const bulkCreateJobPostingSchema = z.object({

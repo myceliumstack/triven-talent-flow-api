@@ -8,6 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ================================================================
@@ -113,7 +114,7 @@ model RolePermission {
   @@map("role_permissions")
 }
 
-// ================================================================
+// ================================================================ma and
 // COMPANY MODEL
 // ================================================================
 
@@ -182,7 +183,6 @@ model POC {
 model JobPosting {
   id              String   @id @default(cuid())
   companyId       String   @map("company_id")
-  companyName     String   @map("company_name")
   title           String
   location        String
   jobLink         String?  @map("job_link")
