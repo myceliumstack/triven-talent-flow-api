@@ -149,7 +149,15 @@ class CompanyController {
     try {
       const { id } = req.params;
       const updateData = req.validatedData;
-      const modifiedById = req.user.userId;
+      const modifiedById = req.user?.userId;
+
+      // Validate that user ID exists
+      if (!modifiedById) {
+        return res.status(401).json({
+          success: false,
+          message: 'User authentication required'
+        });
+      }
 
       const company = await CompanyService.updateCompany(id, updateData, modifiedById);
 
@@ -170,6 +178,15 @@ class CompanyController {
 
       if (error.message === 'Company with this name already exists') {
         return res.status(409).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      // Handle user validation errors
+      if (error.message === 'Invalid user ID: User not found' || 
+          error.message === 'Invalid user reference: The specified user does not exist') {
+        return res.status(400).json({
           success: false,
           message: error.message
         });
