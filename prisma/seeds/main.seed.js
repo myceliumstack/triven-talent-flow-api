@@ -6,6 +6,7 @@ const { hashPassword } = require('../../src/utils/password.utils');
 const { seedCompanies } = require('./company.seed');
 const { seedPOCs } = require('./poc.seed');
 const { seedJobPostings } = require('./job-posting.seed');
+const { seedJobPostingStatuses } = require('./job-posting-status.seed');
 
 const prisma = new PrismaClient();
 
@@ -16,6 +17,7 @@ async function main() {
     // Clear existing data (optional - comment out if you want to keep existing data)
     console.log('🧹 Clearing existing data...');
     await prisma.jobPosting.deleteMany();
+    await prisma.jobPostingStatus.deleteMany();
     await prisma.pOC.deleteMany();
     await prisma.company.deleteMany();
     await prisma.rolePermission.deleteMany();
@@ -28,6 +30,10 @@ async function main() {
     console.log('\n👑 Seeding user management system...');
     await seedUserManagement();
 
+    // Seed Job Posting Statuses (independent)
+    console.log('\n🏷️ Seeding job posting statuses...');
+    const jobPostingStatuses = await seedJobPostingStatuses();
+
     // Seed Companies
     console.log('\n🏢 Seeding companies...');
     const companies = await seedCompanies();
@@ -36,15 +42,16 @@ async function main() {
     console.log('\n👥 Seeding POCs...');
     const pocs = await seedPOCs(companies);
 
-    // Seed Job Postings (depends on companies)
+    // Seed Job Postings (depends on companies and statuses)
     console.log('\n💼 Seeding job postings...');
-    const jobPostings = await seedJobPostings(companies);
+    const jobPostings = await seedJobPostings(companies, jobPostingStatuses);
 
     console.log('\n🎉 Database seeding completed successfully!');
     console.log(`📊 Summary:`);
     console.log(`   - Users: 1 (admin)`);
     console.log(`   - Roles: 7`);
     console.log(`   - Permissions: 13`);
+    console.log(`   - Job Posting Statuses: ${jobPostingStatuses.length}`);
     console.log(`   - Companies: ${companies.length}`);
     console.log(`   - POCs: ${pocs.length}`);
     console.log(`   - Job Postings: ${jobPostings.length}`);

@@ -1,7 +1,13 @@
 // src/routes/auth.routes.js
 const express = require('express');
 const router = express.Router();
-const AuthController = require('../controllers/auth.controller');
+const { 
+  register, 
+  login, 
+  getProfile, 
+  changePassword, 
+  logout 
+} = require('../controllers/auth.controller');
 const { validateRequest } = require('../utils/validation.utils');
 const { 
   registerUserSchema, 
@@ -13,29 +19,29 @@ const { authenticateToken } = require('../middleware/auth.middleware');
 // Public routes (no authentication required)
 router.post('/register', 
   validateRequest(registerUserSchema), 
-  AuthController.register
+  register
 );
 
 router.post('/login', 
   validateRequest(loginUserSchema), 
-  AuthController.login
+  login
 );
 
 // Protected routes (authentication required)
 router.get('/profile', 
   authenticateToken, 
-  AuthController.getProfile
+  getProfile
 );
 
 router.post('/change-password', 
   authenticateToken, 
   validateRequest(changePasswordSchema), 
-  AuthController.changePassword
+  changePassword
 );
 
 router.post('/logout', 
   authenticateToken, 
-  AuthController.logout
+  logout
 );
 
 // Test route (for development)

@@ -1,13 +1,12 @@
 // src/controllers/job-posting.controller.js
 const JobPostingService = require('../services/job-posting.service');
 
-class JobPostingController {
   /**
    * Get all job postings with pagination and filters
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object
    */
-  async getJobPostings(req, res) {
+const getJobPostings = async (req, res) => {
     try {
       const {
         page,
@@ -19,7 +18,7 @@ class JobPostingController {
         experienceRange,
         location,
         bdmAssigned,
-        validation,
+      validation,
         sortBy,
         sortOrder
       } = req.query;
@@ -34,7 +33,7 @@ class JobPostingController {
         experienceRange,
         location,
         bdmAssigned,
-        validation: validation === 'true' ? true : validation === 'false' ? false : undefined,
+      validation: validation === 'true' ? true : validation === 'false' ? false : undefined,
         sortBy,
         sortOrder
       });
@@ -52,50 +51,41 @@ class JobPostingController {
         message: 'Internal server error'
       });
     }
-  }
+};
 
   /**
-   * Get job postings by company ID
+ * Search job postings
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object
    */
-  async getJobPostingsByCompanyId(req, res) {
+const searchJobPostings = async (req, res) => {
     try {
-      const { companyId } = req.params;
+    const { q: query } = req.query;
 
-      const jobPostings = await JobPostingService.getJobPostingsByCompanyId(companyId);
+    const jobPostings = await JobPostingService.searchJobPostings(query);
 
       res.status(200).json({
         success: true,
-        message: 'Company job postings retrieved successfully',
-        data: { jobPostings }
+      message: 'Search completed successfully',
+      data: jobPostings
       });
     } catch (error) {
-      console.error('Error fetching company job postings:', error);
-      
-      if (error.message === 'Company not found') {
-        return res.status(404).json({
-          success: false,
-          message: error.message
-        });
-      }
-
+    console.error('Error searching job postings:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error'
       });
     }
-  }
+};
 
   /**
    * Get job posting by ID
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object
    */
-  async getJobPostingById(req, res) {
+const getJobPostingById = async (req, res) => {
     try {
       const { id } = req.params;
-
       const jobPosting = await JobPostingService.getJobPostingById(id);
 
       res.status(200).json({
@@ -118,19 +108,19 @@ class JobPostingController {
         message: 'Internal server error'
       });
     }
-  }
+};
 
   /**
    * Create new job posting
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object
    */
-  async createJobPosting(req, res) {
+const createJobPosting = async (req, res) => {
     try {
-      const jobData = req.validatedData;
+    const jobPostingData = req.validatedData;
       const createdById = req.user.userId;
 
-      const jobPosting = await JobPostingService.createJobPosting(jobData, createdById);
+    const jobPosting = await JobPostingService.createJobPosting(jobPostingData, createdById);
 
       res.status(201).json({
         success: true,
@@ -152,52 +142,26 @@ class JobPostingController {
         message: 'Internal server error'
       });
     }
-  }
+};
 
   /**
-   * Bulk create job postings
+ * Update job posting
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object
    */
-  async bulkCreateJobPostings(req, res) {
-    try {
-      const { jobPostings: jobPostingsData } = req.validatedData;
-      const createdById = req.user.userId;
+const updateJobPosting = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.validatedData;
+    const modifiedById = req.user?.userId;
 
-      const result = await JobPostingService.bulkCreateJobPostings(jobPostingsData, createdById);
-
-      res.status(201).json({
-        success: true,
-        message: 'Job postings created successfully',
-        data: result
-      });
-    } catch (error) {
-      console.error('Error bulk creating job postings:', error);
-      
-      if (error.message === 'One or more companies not found') {
-        return res.status(400).json({
-          success: false,
-          message: error.message
-        });
-      }
-
-      res.status(500).json({
+    // Validate that user ID exists
+    if (!modifiedById) {
+      return res.status(401).json({
         success: false,
-        message: 'Internal server error'
+        message: 'User authentication required'
       });
     }
-  }
-
-  /**
-   * Update job posting
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
-  async updateJobPosting(req, res) {
-    try {
-      const { id } = req.params;
-      const updateData = req.validatedData;
-      const modifiedById = req.user.userId;
 
       const jobPosting = await JobPostingService.updateJobPosting(id, updateData, modifiedById);
 
@@ -216,22 +180,30 @@ class JobPostingController {
         });
       }
 
-      res.status(500).json({
+    // Handle user validation errors
+    if (error.message === 'Invalid user ID: User not found' || 
+        error.message === 'Invalid user reference: The specified user does not exist') {
+      return res.status(400).json({
         success: false,
-        message: 'Internal server error'
+        message: error.message
       });
     }
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
   }
+};
 
   /**
    * Delete job posting
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object
    */
-  async deleteJobPosting(req, res) {
+const deleteJobPosting = async (req, res) => {
     try {
       const { id } = req.params;
-
       await JobPostingService.deleteJobPosting(id);
 
       res.status(200).json({
@@ -253,128 +225,64 @@ class JobPostingController {
         message: 'Internal server error'
       });
     }
-  }
+};
 
   /**
-   * Bulk delete job postings
+ * Get job postings by company ID
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object
    */
-  async bulkDeleteJobPostings(req, res) {
-    try {
-      const { ids } = req.validatedData;
-
-      const result = await JobPostingService.bulkDeleteJobPostings(ids);
-
-      res.status(200).json({
-        success: true,
-        message: `${result.count} job postings deleted successfully`,
-        data: result
-      });
-    } catch (error) {
-      console.error('Error bulk deleting job postings:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Internal server error'
-      });
-    }
-  }
-
-  /**
-   * Get job posting statistics
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
-  async getJobPostingStats(req, res) {
-    try {
-      const stats = await JobPostingService.getJobPostingStats();
-
-      res.status(200).json({
-        success: true,
-        message: 'Job posting statistics retrieved successfully',
-        data: { stats }
-      });
-    } catch (error) {
-      console.error('Error fetching job posting stats:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Internal server error'
-      });
-    }
-  }
-
-  /**
-   * Get job posting statistics for a specific company
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
-  async getCompanyJobPostingStats(req, res) {
+const getJobPostingsByCompanyId = async (req, res) => {
     try {
       const { companyId } = req.params;
+      
+      console.log('🏢 Fetching job postings for company ID:', companyId);
+      
+      const jobPostings = await JobPostingService.getJobPostingsByCompanyId(companyId);
 
-      const stats = await JobPostingService.getCompanyJobPostingStats(companyId);
+      console.log('✅ Successfully fetched', jobPostings.length, 'job postings for company:', companyId);
 
       res.status(200).json({
         success: true,
-        message: 'Company job posting statistics retrieved successfully',
-        data: { stats }
+        message: 'Job postings retrieved successfully',
+        data: { jobPostings }
       });
     } catch (error) {
-      console.error('Error fetching company job posting stats:', error);
+      console.error('❌ Error fetching job postings by company:', {
+        companyId: req.params.companyId,
+        error: error.message,
+        stack: error.stack
+      });
       
       if (error.message === 'Company not found') {
+        console.log('📍 Company not found, returning 404');
         return res.status(404).json({
           success: false,
-          message: error.message
+          message: `Company with ID ${req.params.companyId} not found`
         });
       }
 
+      console.log('📍 Unexpected error, returning 500');
       res.status(500).json({
         success: false,
         message: 'Internal server error'
       });
     }
-  }
-
-  /**
-   * Search job postings
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
-  async searchJobPostings(req, res) {
-    try {
-      const { q: query } = req.query;
-      
-      const jobPostings = await JobPostingService.searchJobPostings(query);
-
-      res.status(200).json({
-        success: true,
-        message: 'Search completed successfully',
-        data: jobPostings
-      });
-    } catch (error) {
-      console.error('Error searching job postings:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Internal server error'
-      });
-    }
-  }
+  };
 
   /**
    * Get job postings by category
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object
    */
-  async getJobPostingsByCategory(req, res) {
+const getJobPostingsByCategory = async (req, res) => {
     try {
       const { category } = req.params;
-
       const jobPostings = await JobPostingService.getJobPostingsByCategory(category);
 
       res.status(200).json({
         success: true,
-        message: 'Job postings retrieved successfully',
+      message: `Job postings in ${category} category retrieved successfully`,
         data: { jobPostings }
       });
     } catch (error) {
@@ -384,22 +292,21 @@ class JobPostingController {
         message: 'Internal server error'
       });
     }
-  }
+};
 
   /**
    * Get job postings by status
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object
    */
-  async getJobPostingsByStatus(req, res) {
+const getJobPostingsByStatus = async (req, res) => {
     try {
       const { status } = req.params;
-
       const jobPostings = await JobPostingService.getJobPostingsByStatus(status);
 
       res.status(200).json({
         success: true,
-        message: 'Job postings retrieved successfully',
+      message: `Job postings with ${status} status retrieved successfully`,
         data: { jobPostings }
       });
     } catch (error) {
@@ -409,77 +316,205 @@ class JobPostingController {
         message: 'Internal server error'
       });
     }
+};
+
+/**
+ * Get job postings by validation status
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getJobPostingsByValidation = async (req, res) => {
+  try {
+    const { validation } = req.params;
+    const validationStatus = validation === 'true';
+    
+    const jobPostings = await JobPostingService.getJobPostingsByValidation(validationStatus);
+
+    res.status(200).json({
+      success: true,
+      message: `Job postings with validation ${validation} retrieved successfully`,
+      data: { jobPostings }
+    });
+  } catch (error) {
+    console.error('Error fetching job postings by validation:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
   }
+};
 
-  /**
-   * Get job postings by validation status
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
-  async getJobPostingsByValidation(req, res) {
-    try {
-      const { validation } = req.params;
-      
-      // Convert string to boolean
-      const validationStatus = validation === 'true';
+/**
+ * Update job posting validation status
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const updateJobPostingValidation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { validation } = req.body;
+    const modifiedById = req.user.userId;
 
-      const jobPostings = await JobPostingService.getJobPostingsByValidation(validationStatus);
+    const jobPosting = await JobPostingService.updateJobPostingValidation(id, validation, modifiedById);
 
-      res.status(200).json({
-        success: true,
-        message: `Job postings with validation ${validationStatus ? 'enabled' : 'disabled'} retrieved successfully`,
-        data: { jobPostings }
-      });
-    } catch (error) {
-      console.error('Error fetching job postings by validation:', error);
-      res.status(500).json({
+    res.status(200).json({
+      success: true,
+      message: 'Job posting validation updated successfully',
+      data: { jobPosting }
+    });
+  } catch (error) {
+    console.error('Error updating job posting validation:', error);
+    
+    if (error.message === 'Job posting not found') {
+      return res.status(404).json({
         success: false,
-        message: 'Internal server error'
+        message: error.message
       });
     }
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
   }
+};
 
-  /**
-   * Update validation status of a job posting
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
-  async updateJobPostingValidation(req, res) {
-    try {
-      const { id } = req.params;
-      const { validation } = req.body;
-      const modifiedById = req.user.userId;
+/**
+ * Get job posting statistics
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getJobPostingStats = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const stats = await JobPostingService.getJobPostingStats(id);
 
-      if (typeof validation !== 'boolean') {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation must be a boolean value'
-        });
-      }
-
-      const jobPosting = await JobPostingService.updateJobPostingValidation(id, validation, modifiedById);
-
-      res.status(200).json({
-        success: true,
-        message: 'Job posting validation status updated successfully',
-        data: { jobPosting }
-      });
-    } catch (error) {
-      console.error('Error updating job posting validation:', error);
-      
-      if (error.message === 'Job posting not found') {
-        return res.status(404).json({
-          success: false,
-          message: error.message
-        });
-      }
-
-      res.status(500).json({
+    res.status(200).json({
+      success: true,
+      message: 'Job posting statistics retrieved successfully',
+      data: { stats }
+    });
+  } catch (error) {
+    console.error('Error fetching job posting stats:', error);
+    
+    if (error.message === 'Job posting not found') {
+      return res.status(404).json({
         success: false,
-        message: 'Internal server error'
+        message: error.message
       });
     }
-  }
-}
 
-module.exports = new JobPostingController();
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+/**
+ * Assign BDM to job posting
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const assignBDMToJobPosting = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bdmId } = req.body;
+    const modifiedById = req.user.userId;
+
+    const jobPosting = await JobPostingService.assignBDMToJobPosting(id, bdmId, modifiedById);
+
+    res.status(200).json({
+      success: true,
+      message: 'BDM assigned to job posting successfully',
+      data: { jobPosting }
+    });
+  } catch (error) {
+    console.error('Error assigning BDM to job posting:', error);
+    
+    if (error.message === 'Job posting not found' || error.message === 'BDM not found') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+/**
+ * Get job postings by experience range
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getJobPostingsByExperience = async (req, res) => {
+  try {
+    const { experience } = req.params;
+    const jobPostings = await JobPostingService.getJobPostingsByExperience(experience);
+
+    res.status(200).json({
+      success: true,
+      message: `Job postings for ${experience} experience retrieved successfully`,
+      data: { jobPostings }
+    });
+  } catch (error) {
+    console.error('Error fetching job postings by experience:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+/**
+ * Get all companies (helper endpoint for frontend)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getAllCompanies = async (req, res) => {
+  try {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    const companies = await prisma.company.findMany({
+      select: { id: true, name: true, industry: true, location: true },
+      orderBy: { name: 'asc' }
+    });
+    
+    await prisma.$disconnect();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Companies retrieved successfully',
+      data: companies
+    });
+  } catch (error) {
+    console.error('Error fetching companies:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+module.exports = {
+  getJobPostings,
+  searchJobPostings,
+  getJobPostingById,
+  createJobPosting,
+  updateJobPosting,
+  deleteJobPosting,
+  getJobPostingsByCompanyId,
+  getJobPostingsByCategory,
+  getJobPostingsByStatus,
+  getJobPostingsByValidation,
+  updateJobPostingValidation,
+  getJobPostingStats,
+  assignBDMToJobPosting,
+  getJobPostingsByExperience,
+  getAllCompanies
+};

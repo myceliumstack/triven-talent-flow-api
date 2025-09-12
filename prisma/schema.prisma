@@ -177,6 +177,23 @@ model POC {
 }
 
 // ================================================================
+// JOB POSTING STATUS MODEL
+// ================================================================
+
+model JobPostingStatus {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  jobPostings JobPosting[]
+
+  @@map("job_posting_statuses")
+}
+
+// ================================================================
 // JOB POSTING MODEL
 // ================================================================
 
@@ -196,7 +213,7 @@ model JobPosting {
   createdBy       String   @map("created_by")
   modifiedBy      String?  @map("modified_by")
   bdmAssigned     String?  @map("bdm_assigned")
-  status          String   @default("Active") // Changed from JobStatus enum to string
+  statusId        String?  @map("status_id") // Foreign key to JobPostingStatus
   validation      Boolean  @default(false)
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -206,9 +223,10 @@ model JobPosting {
   modifiedById    String?  @map("modified_by_id")
 
   // Relations
-  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  createdByUser   User?    @relation("JobPostingCreatedBy", fields: [createdById], references: [id])
-  modifiedByUser  User?    @relation("JobPostingModifiedBy", fields: [modifiedById], references: [id])
+  company         Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  status          JobPostingStatus? @relation(fields: [statusId], references: [id])
+  createdByUser   User?             @relation("JobPostingCreatedBy", fields: [createdById], references: [id])
+  modifiedByUser  User?             @relation("JobPostingModifiedBy", fields: [modifiedById], references: [id])
 
   @@map("job_postings")
 }

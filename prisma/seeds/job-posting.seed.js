@@ -3,11 +3,17 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
-async function seedJobPostings(companies) {
+async function seedJobPostings(companies, jobPostingStatuses) {
   console.log('💼 Seeding job postings...');
 
   // Clear existing job postings
   await prisma.jobPosting.deleteMany();
+
+  // Helper function to get status ID by name
+  const getStatusId = (statusName) => {
+    const status = jobPostingStatuses.find(s => s.name.toLowerCase() === statusName.toLowerCase());
+    return status ? status.id : null;
+  };
 
   const jobPostings = [
     // TechCorp Solutions Job Postings
@@ -25,7 +31,7 @@ async function seedJobPostings(companies) {
       additionalNotes: 'Remote work available. Must have experience with AWS and Docker.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM001',
-      status: 'Active',
+      statusId: getStatusId('uncontacted'),
       validation: true
     },
     {
@@ -42,7 +48,7 @@ async function seedJobPostings(companies) {
       additionalNotes: 'On-site position. Benefits include health insurance and stock options.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM001',
-      status: 'Active',
+      statusId: getStatusId('uncontacted'),
       validation: true
     },
 
@@ -61,7 +67,7 @@ async function seedJobPostings(companies) {
       additionalNotes: 'CFA certification preferred. Fast-paced environment.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM002',
-      status: 'Active',
+      statusId: getStatusId('uncontacted'),
       validation: true
     },
     {
@@ -96,7 +102,7 @@ async function seedJobPostings(companies) {
       additionalNotes: 'Remote work available. Startup environment with growth opportunities.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM003',
-      status: 'Active',
+      statusId: getStatusId('uncontacted'),
       validation: true
     },
     {
@@ -132,7 +138,7 @@ async function seedJobPostings(companies) {
       additionalNotes: 'PE license preferred. Field work required.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM004',
-      status: 'Active',
+      statusId: getStatusId('uncontacted'),
       validation: true
     },
 
@@ -151,7 +157,7 @@ async function seedJobPostings(companies) {
       additionalNotes: 'Analytics experience preferred. Performance bonus available.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM005',
-      status: 'Active',
+      statusId: getStatusId('uncontacted'),
       validation: true
     },
     {
@@ -187,7 +193,7 @@ async function seedJobPostings(companies) {
       additionalNotes: 'MBA preferred. Fast-paced startup environment.',
       createdBy: 'admin@trivens.com',
       bdmAssigned: 'BDM006',
-      status: 'Active',
+      statusId: getStatusId('uncontacted'),
       validation: true
     }
   ];
@@ -195,10 +201,18 @@ async function seedJobPostings(companies) {
   const createdJobPostings = [];
   for (const jobData of jobPostings) {
     const jobPosting = await prisma.jobPosting.create({
-      data: jobData
+      data: jobData,
+      include: {
+        company: {
+          select: { name: true }
+        },
+        status: {
+          select: { name: true }
+        }
+      }
     });
     createdJobPostings.push(jobPosting);
-    console.log(`✅ Created job posting: ${jobPosting.title} at ${jobPosting.companyName}`);
+    console.log(`✅ Created job posting: ${jobPosting.title} at ${jobPosting.company.name} (Status: ${jobPosting.status?.name || 'None'})`);
   }
 
   console.log(`🎉 Successfully seeded ${createdJobPostings.length} job postings`);

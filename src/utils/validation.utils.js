@@ -75,15 +75,21 @@ const createJobPostingSchema = z.object({
   createdBy: z.string().min(1, 'Created by is required').max(255, 'Created by too long'),
   modifiedBy: z.string().max(255, 'Modified by too long').optional(),
   bdmAssigned: z.string().max(255, 'BDM assigned too long').optional(),
-  status: z.enum(['Active', 'Closed', 'On Hold', 'Draft'], {
-    errorMap: () => ({ message: 'Invalid job status' })
-  }).default('Active'),
+  statusId: z.string().cuid('Invalid status ID').optional(),
   validation: z.boolean().default(false)
 });
 
 const updateJobPostingSchema = createJobPostingSchema.partial().omit({ 
   companyId: true
 });
+
+// Job Posting Status validation schemas
+const createJobPostingStatusSchema = z.object({
+  name: z.string().min(1, 'Status name is required').max(100, 'Status name too long'),
+  isActive: z.boolean().default(true)
+});
+
+const updateJobPostingStatusSchema = createJobPostingStatusSchema.partial();
 
 const bulkCreateJobPostingSchema = z.object({
   jobPostings: z.array(createJobPostingSchema).min(1, 'At least one job posting is required')
@@ -143,6 +149,8 @@ module.exports = {
   updateCompanySchema,
   createJobPostingSchema,
   updateJobPostingSchema,
+  createJobPostingStatusSchema,
+  updateJobPostingStatusSchema,
   bulkCreateJobPostingSchema,
   bulkDeleteJobPostingSchema,
   createPOCSchema,

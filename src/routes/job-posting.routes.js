@@ -1,7 +1,23 @@
 // src/routes/job-posting.routes.js
 const express = require('express');
 const router = express.Router();
-const JobPostingController = require('../controllers/job-posting.controller');
+const {
+  getJobPostings,
+  searchJobPostings,
+  getJobPostingById,
+  createJobPosting,
+  updateJobPosting,
+  deleteJobPosting,
+  getJobPostingsByCompanyId,
+  getJobPostingsByCategory,
+  getJobPostingsByStatus,
+  getJobPostingsByValidation,
+  updateJobPostingValidation,
+  getJobPostingStats,
+  assignBDMToJobPosting,
+  getJobPostingsByExperience,
+  getAllCompanies
+} = require('../controllers/job-posting.controller');
 const { validateRequest } = require('../utils/validation.utils');
 const { 
   createJobPostingSchema, 
@@ -15,55 +31,55 @@ const { authenticateToken } = require('../middleware/auth.middleware');
 router.use(authenticateToken);
 
 // GET /api/job-postings - Get all job postings with pagination and filters
-router.get('/', JobPostingController.getJobPostings);
+router.get('/', getJobPostings);
+
+// GET /api/job-postings/companies - Get all companies (helper endpoint)
+router.get('/companies', getAllCompanies);
 
 // GET /api/job-postings/search - Search job postings
-router.get('/search', JobPostingController.searchJobPostings);
+router.get('/search', searchJobPostings);
 
-// GET /api/job-postings/stats - Get job posting statistics
-router.get('/stats', JobPostingController.getJobPostingStats);
+// GET /api/job-postings/stats - Get job posting statistics (Note: this may need specific ID)
+router.get('/stats/:id', getJobPostingStats);
 
 // GET /api/job-postings/category/:category - Get job postings by category
-router.get('/category/:category', JobPostingController.getJobPostingsByCategory);
+router.get('/category/:category', getJobPostingsByCategory);
 
 // GET /api/job-postings/status/:status - Get job postings by status
-router.get('/status/:status', JobPostingController.getJobPostingsByStatus);
+router.get('/status/:status', getJobPostingsByStatus);
 
 // GET /api/job-postings/validation/:validation - Get job postings by validation status
-router.get('/validation/:validation', JobPostingController.getJobPostingsByValidation);
+router.get('/validation/:validation', getJobPostingsByValidation);
+
+// GET /api/job-postings/experience/:experience - Get job postings by experience
+router.get('/experience/:experience', getJobPostingsByExperience);
+
+// GET /api/job-postings/company/:companyId - Get job postings by company ID
+router.get('/company/:companyId', getJobPostingsByCompanyId);
 
 // GET /api/job-postings/:id - Get job posting by ID
-router.get('/:id', JobPostingController.getJobPostingById);
+router.get('/:id', getJobPostingById);
 
 // POST /api/job-postings - Create new job posting
 router.post('/', 
   validateRequest(createJobPostingSchema), 
-  JobPostingController.createJobPosting
-);
-
-// POST /api/job-postings/bulk - Bulk create job postings
-router.post('/bulk', 
-  validateRequest(bulkCreateJobPostingSchema), 
-  JobPostingController.bulkCreateJobPostings
+  createJobPosting
 );
 
 // PUT /api/job-postings/:id - Update job posting
 router.put('/:id', 
   validateRequest(updateJobPostingSchema), 
-  JobPostingController.updateJobPosting
+  updateJobPosting
 );
 
 // PATCH /api/job-postings/:id/validation - Update validation status
-router.patch('/:id/validation', JobPostingController.updateJobPostingValidation);
+router.patch('/:id/validation', updateJobPostingValidation);
+
+// PATCH /api/job-postings/:id/assign-bdm - Assign BDM to job posting
+router.patch('/:id/assign-bdm', assignBDMToJobPosting);
 
 // DELETE /api/job-postings/:id - Delete job posting
-router.delete('/:id', JobPostingController.deleteJobPosting);
-
-// DELETE /api/job-postings/bulk - Bulk delete job postings
-router.delete('/bulk', 
-  validateRequest(bulkDeleteJobPostingSchema), 
-  JobPostingController.bulkDeleteJobPostings
-);
+router.delete('/:id', deleteJobPosting);
 
 // Test route (for development)
 router.get('/test', (req, res) => {

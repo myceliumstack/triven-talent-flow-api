@@ -1,9 +1,137 @@
 // src/services/job-posting.service.js
 const prisma = require('../config/database');
 
-// No mapping needed - using string fields directly
+// Common include object for job posting queries
+const jobPostingIncludes = {
+  company: {
+    select: { id: true, name: true, industry: true, location: true }
+  },
+  status: {
+    select: { id: true, name: true, isActive: true }
+  },
+  createdByUser: {
+    select: { id: true, firstName: true, lastName: true, email: true }
+  },
+  modifiedByUser: {
+    select: { id: true, firstName: true, lastName: true, email: true }
+  }
+};
 
 class JobPostingService {
+  /**
+   * Get all job posting statuses
+   * @returns {Promise<Array>} Job posting statuses
+   */
+  async getAllStatuses() {
+    return await prisma.jobPostingStatus.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' }
+    });
+  }
+
+  /**
+   * Get job posting status by ID
+   * @param {string} id - Status ID
+   * @returns {Promise<Object>} Job posting status
+   */
+  async getStatusById(id) {
+    const status = await prisma.jobPostingStatus.findUnique({
+      where: { id }
+    });
+
+    if (!status) {
+      throw new Error('Job posting status not found');
+    }
+
+    return status;
+  }
+
+  /**
+   * Create new job posting status
+   * @param {Object} statusData - Status data
+   * @returns {Promise<Object>} Created status
+   */
+  async createStatus(statusData) {
+    // Check if status with same name already exists
+    const existingStatus = await prisma.jobPostingStatus.findFirst({
+      where: { name: statusData.name }
+    });
+
+    if (existingStatus) {
+      throw new Error('Status with this name already exists');
+    }
+
+    return await prisma.jobPostingStatus.create({
+      data: statusData
+    });
+  }
+
+  /**
+   * Update job posting status
+   * @param {string} id - Status ID
+   * @param {Object} updateData - Update data
+   * @returns {Promise<Object>} Updated status
+   */
+  async updateStatus(id, updateData) {
+    const existingStatus = await prisma.jobPostingStatus.findUnique({
+      where: { id }
+    });
+
+    if (!existingStatus) {
+      throw new Error('Job posting status not found');
+    }
+
+    // Check for name conflict if name is being updated
+    if (updateData.name && updateData.name !== existingStatus.name) {
+      const nameConflict = await prisma.jobPostingStatus.findFirst({
+        where: { 
+          name: updateData.name,
+          id: { not: id }
+        }
+      });
+
+      if (nameConflict) {
+        throw new Error('Status with this name already exists');
+      }
+    }
+
+    return await prisma.jobPostingStatus.update({
+      where: { id },
+      data: updateData
+    });
+  }
+
+  /**
+   * Delete job posting status
+   * @param {string} id - Status ID
+   * @returns {Promise<boolean>} Success status
+   */
+  async deleteStatus(id) {
+    // Check if status exists
+    const status = await prisma.jobPostingStatus.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { jobPostings: true }
+        }
+      }
+    });
+
+    if (!status) {
+      throw new Error('Job posting status not found');
+    }
+
+    // Check if status is being used by any job postings
+    if (status._count.jobPostings > 0) {
+      throw new Error('Cannot delete status that is being used by job postings');
+    }
+
+    await prisma.jobPostingStatus.delete({
+      where: { id }
+    });
+
+    return true;
+  }
   /**
    * Get all job postings with pagination and filters
    * @param {Object} options - Query options
@@ -41,7 +169,14 @@ class JobPostingService {
     
     if (companyId) where.companyId = companyId;
     if (category) where.category = category;
-    if (status) where.status = status;
+    if (status) {
+      // Handle both statusId and status name
+      if (status.length === 25) { // CUID length
+        where.statusId = status;
+      } else {
+        where.status = { name: status };
+      }
+    }
     if (experienceRange) where.experienceRange = experienceRange;
     if (bdmAssigned) where.bdmAssigned = bdmAssigned;
     if (typeof validation === 'boolean') where.validation = validation;
@@ -64,17 +199,7 @@ class JobPostingService {
         orderBy,
         skip,
         take: limit,
-        include: {
-          company: {
-            select: { id: true, name: true, industry: true, location: true }
-          },
-          createdByUser: {
-            select: { id: true, firstName: true, lastName: true, email: true }
-          },
-          modifiedByUser: {
-            select: { id: true, firstName: true, lastName: true, email: true }
-          }
-        }
+        include: jobPostingIncludes
       }),
       prisma.jobPosting.count({ where })
     ]);
@@ -96,27 +221,28 @@ class JobPostingService {
    * @returns {Promise<Array>} Job postings for the company
    */
   async getJobPostingsByCompanyId(companyId) {
+    console.log('🔍 JobPostingService: Checking company existence for ID:', companyId);
+    
     // Verify company exists
     const company = await prisma.company.findUnique({
       where: { id: companyId }
     });
 
     if (!company) {
+      console.log('❌ JobPostingService: Company not found for ID:', companyId);
       throw new Error('Company not found');
     }
 
-    return await prisma.jobPosting.findMany({
+    console.log('✅ JobPostingService: Company found:', company.name, 'fetching job postings...');
+
+    const jobPostings = await prisma.jobPosting.findMany({
       where: { companyId },
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdByUser: {
-          select: { id: true, firstName: true, lastName: true, email: true }
-        },
-        modifiedByUser: {
-          select: { id: true, firstName: true, lastName: true, email: true }
-        }
-      }
+      include: jobPostingIncludes
     });
+
+    console.log('✅ JobPostingService: Found', jobPostings.length, 'job postings for company:', company.name);
+    return jobPostings;
   }
 
   /**
@@ -244,17 +370,7 @@ class JobPostingService {
           ...updateData,
           modifiedById
         },
-        include: {
-          company: {
-            select: { id: true, name: true, industry: true, location: true }
-          },
-          createdByUser: {
-            select: { id: true, firstName: true, lastName: true, email: true }
-          },
-          modifiedByUser: {
-            select: { id: true, firstName: true, lastName: true, email: true }
-          }
-        }
+        include: jobPostingIncludes
       });
 
       return jobPosting;
@@ -375,11 +491,7 @@ class JobPostingService {
   async getJobPostingsByCategory(category) {
     return await prisma.jobPosting.findMany({
       where: { category },
-      include: {
-        company: {
-          select: { id: true, name: true, industry: true, location: true }
-        }
-      },
+      include: jobPostingIncludes,
       orderBy: { createdAt: 'desc' }
     });
   }
@@ -390,13 +502,18 @@ class JobPostingService {
    * @returns {Promise<Array>} Job postings with the status
    */
   async getJobPostingsByStatus(status) {
+    const where = {};
+    
+    // Handle both statusId and status name
+    if (status.length === 25) { // CUID length
+      where.statusId = status;
+    } else {
+      where.status = { name: status };
+    }
+
     return await prisma.jobPosting.findMany({
-      where: { status },
-      include: {
-        company: {
-          select: { id: true, name: true, industry: true, location: true }
-        }
-      },
+      where,
+      include: jobPostingIncludes,
       orderBy: { createdAt: 'desc' }
     });
   }
