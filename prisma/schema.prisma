@@ -46,6 +46,11 @@ model User {
   modifiedCandidates   Candidate[]  @relation("UserModifiedCandidates")
   candidateActivities  CandidateActivity[] @relation("UserCandidateActivities")
 
+  // Database indexes for performance optimization
+  @@index([email])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([firstName, lastName])
   @@map("users")
 }
 
@@ -150,6 +155,14 @@ model Company {
   jobPostings      JobPosting[]
   jobs             Job[]
 
+  // Database indexes for performance optimization
+  @@index([name])
+  @@index([industry])
+  @@index([location])
+  @@index([size])
+  @@index([agreementStatus])
+  @@index([createdAt])
+  @@index([createdById])
   @@map("companies")
 }
 
@@ -180,6 +193,14 @@ model POC {
   createdBy    User?    @relation("POCCreatedBy", fields: [createdById], references: [id])
   modifiedBy   User?    @relation("POCModifiedBy", fields: [modifiedById], references: [id])
 
+  // Database indexes for performance optimization
+  @@index([companyId])
+  @@index([email])
+  @@index([firstName, lastName])
+  @@index([designation])
+  @@index([location])
+  @@index([department])
+  @@index([createdAt])
   @@map("pocs")
 }
 
@@ -197,6 +218,10 @@ model JobPostingStatus {
   // Relations
   jobPostings JobPosting[]
 
+  // Database indexes for performance optimization
+  @@index([name])
+  @@index([isActive])
+  @@index([createdAt])
   @@map("job_posting_statuses")
 }
 
@@ -262,6 +287,11 @@ model JobStatus {
 
   jobs      Job[]
 
+  // Database indexes for performance optimization
+  @@index([name])
+  @@index([slug])
+  @@index([isActive])
+  @@index([createdAt])
   @@map("job_statuses")
 }
 
@@ -317,10 +347,19 @@ model Job {
   createdAt        DateTime     @default(now()) @map("created_at")
   updatedAt        DateTime     @updatedAt @map("updated_at")
 
-  @@map("jobs")
+  // Database indexes for performance optimization
   @@index([companyId])
   @@index([statusId])
   @@index([jobCode])
+  @@index([title])
+  @@index([location])
+  @@index([remoteType])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([jobPostingId])
+  @@index([createdById])
+  @@index([tags])
+  @@map("jobs")
 }
 
 // ================================================================
@@ -340,9 +379,12 @@ model JobActivity {
   job       Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
   createdBy User @relation("UserJobActivities", fields: [createdById], references: [id])
 
-  @@map("job_activities")
+  // Database indexes for performance optimization
   @@index([jobId])
   @@index([createdById])
+  @@index([activityType])
+  @@index([createdAt])
+  @@map("job_activities")
 }
 
 // ================================================================
@@ -359,6 +401,11 @@ model CandidateStage {
 
   candidates Candidate[]
 
+  // Database indexes for performance optimization
+  @@index([name])
+  @@index([slug])
+  @@index([isActive])
+  @@index([createdAt])
   @@map("candidate_stages")
 }
 
@@ -379,9 +426,12 @@ model CandidateActivity {
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   createdBy   User      @relation("UserCandidateActivities", fields: [createdById], references: [id])
 
-  @@map("candidate_activities")
+  // Database indexes for performance optimization
   @@index([candidateId])
   @@index([createdById])
+  @@index([activityType])
+  @@index([createdAt])
+  @@map("candidate_activities")
 }
 
 // ================================================================
@@ -426,9 +476,20 @@ model Candidate {
   activities      CandidateActivity[]
   education       Education[]
 
-  @@map("candidates")
+  // Database indexes for performance optimization
   @@index([jobId])
   @@index([currentStageId])
+  @@index([firstName, lastName])
+  @@index([email])
+  @@index([phone])
+  @@index([location])
+  @@index([isApplicant])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([skills])
+  @@index([experienceYears])
+  @@map("candidates")
 }
 
 // ================================================================
@@ -453,8 +514,13 @@ model Education {
 
   candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
-  @@map("education")
+  // Database indexes for performance optimization
   @@index([candidateId])
   @@index([institution])
   @@index([degree])
+  @@index([fieldOfStudy])
+  @@index([graduationYear])
+  @@index([isCompleted])
+  @@index([createdAt])
+  @@map("education")
 }
