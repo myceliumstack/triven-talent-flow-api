@@ -237,6 +237,14 @@ model JobPosting {
   modifiedByUser  User?             @relation("JobPostingModifiedBy", fields: [modifiedById], references: [id])
   jobs            Job[]
 
+  // Database indexes for performance optimization
+  @@index([companyId])
+  @@index([statusId])
+  @@index([validation])
+  @@index([createdAt])
+  @@index([category])
+  @@index([location])
+  @@index([bdmAssigned])
   @@map("job_postings")
 }
 

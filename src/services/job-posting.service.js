@@ -1,8 +1,31 @@
 // src/services/job-posting.service.js
 const prisma = require('../config/database');
 
-// Common include object for job posting queries
-const jobPostingIncludes = {
+// Lightweight include object for list views (optimized for performance)
+const jobPostingListIncludes = {
+  company: {
+    select: { id: true, name: true }
+  },
+  status: {
+    select: { id: true, name: true }
+  }
+};
+
+// Medium include object for search/filter views
+const jobPostingSearchIncludes = {
+  company: {
+    select: { id: true, name: true, industry: true }
+  },
+  status: {
+    select: { id: true, name: true, isActive: true }
+  },
+  createdByUser: {
+    select: { id: true, firstName: true, lastName: true }
+  }
+};
+
+// Full include object for detail views (only when needed)
+const jobPostingDetailIncludes = {
   company: {
     select: { id: true, name: true, industry: true, location: true }
   },
@@ -226,7 +249,7 @@ class JobPostingService {
         orderBy,
         skip,
         take: limit,
-        include: jobPostingIncludes
+        include: jobPostingListIncludes
       }),
       prisma.jobPosting.count({ where })
     ]);
@@ -265,7 +288,7 @@ class JobPostingService {
     const jobPostings = await prisma.jobPosting.findMany({
       where: { companyId },
       orderBy: { createdAt: 'desc' },
-      include: jobPostingIncludes
+      include: jobPostingListIncludes
     });
 
     console.log('✅ JobPostingService: Found', jobPostings.length, 'job postings for company:', company.name);
@@ -280,17 +303,7 @@ class JobPostingService {
   async getJobPostingById(id) {
     const jobPosting = await prisma.jobPosting.findUnique({
       where: { id },
-      include: {
-        company: {
-          select: { id: true, name: true, industry: true, location: true }
-        },
-        createdByUser: {
-          select: { id: true, firstName: true, lastName: true, email: true }
-        },
-        modifiedByUser: {
-          select: { id: true, firstName: true, lastName: true, email: true }
-        }
-      }
+      include: jobPostingDetailIncludes
     });
 
     if (!jobPosting) {
@@ -397,7 +410,7 @@ class JobPostingService {
           ...updateData,
           modifiedById
         },
-        include: jobPostingIncludes
+        include: jobPostingDetailIncludes
       });
 
       return jobPosting;
@@ -518,7 +531,7 @@ class JobPostingService {
   async getJobPostingsByCategory(category) {
     return await prisma.jobPosting.findMany({
       where: { category },
-      include: jobPostingIncludes,
+      include: jobPostingListIncludes,
       orderBy: { createdAt: 'desc' }
     });
   }
@@ -540,7 +553,7 @@ class JobPostingService {
 
     return await prisma.jobPosting.findMany({
       where,
-      include: jobPostingIncludes,
+      include: jobPostingListIncludes,
       orderBy: { createdAt: 'desc' }
     });
   }
@@ -589,17 +602,7 @@ class JobPostingService {
   async getJobPostingsByValidation(validationStatus) {
     return await prisma.jobPosting.findMany({
       where: { validation: validationStatus },
-      include: {
-        company: {
-          select: { id: true, name: true, industry: true, location: true }
-        },
-        createdByUser: {
-          select: { id: true, firstName: true, lastName: true, email: true }
-        },
-        modifiedByUser: {
-          select: { id: true, firstName: true, lastName: true, email: true }
-        }
-      },
+      include: jobPostingSearchIncludes,
       orderBy: { createdAt: 'desc' }
     });
   }
