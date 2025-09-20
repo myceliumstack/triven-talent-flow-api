@@ -3,69 +3,127 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const candidateStages = [
+  // Recruiter Workflow Stages
   {
-    name: 'Applied',
-    slug: 'applied',
+    name: 'New Application',
+    slug: 'new-application',
     isActive: true
   },
   {
-    name: 'Screening',
-    slug: 'screening',
+    name: 'Attempted to Contact',
+    slug: 'attempted-to-contact',
     isActive: true
   },
   {
-    name: 'Phone Interview',
-    slug: 'phone-interview',
+    name: 'Call Scheduled',
+    slug: 'call-scheduled',
     isActive: true
   },
   {
-    name: 'Technical Interview',
-    slug: 'technical-interview',
+    name: 'Candidate Declined',
+    slug: 'candidate-declined',
     isActive: true
   },
   {
-    name: 'HR Interview',
-    slug: 'hr-interview',
+    name: 'Phone Screened',
+    slug: 'phone-screened',
     isActive: true
   },
   {
-    name: 'Final Interview',
-    slug: 'final-interview',
+    name: 'Submitted to BDM',
+    slug: 'submitted-to-bdm',
     isActive: true
   },
   {
-    name: 'Reference Check',
-    slug: 'reference-check',
+    name: 'Recruiter Rejected',
+    slug: 'recruiter-rejected',
+    isActive: true
+  },
+  
+  // BDM Workflow Stages
+  {
+    name: 'BDM Rejected',
+    slug: 'bdm-rejected',
     isActive: true
   },
   {
-    name: 'Offer Extended',
-    slug: 'offer-extended',
+    name: 'Submitted to Client',
+    slug: 'submitted-to-client',
     isActive: true
   },
   {
-    name: 'Offer Accepted',
-    slug: 'offer-accepted',
+    name: 'Submission Held',
+    slug: 'submission-held',
     isActive: true
   },
   {
-    name: 'Offer Declined',
-    slug: 'offer-declined',
+    name: 'Awaiting Feedback on Submission',
+    slug: 'awaiting-feedback-submission',
     isActive: true
   },
   {
-    name: 'Rejected',
-    slug: 'rejected',
+    name: 'Interview Requested',
+    slug: 'interview-requested',
     isActive: true
   },
   {
-    name: 'Withdrawn',
-    slug: 'withdrawn',
+    name: 'Interview Scheduled',
+    slug: 'interview-scheduled',
     isActive: true
   },
   {
-    name: 'On Hold',
-    slug: 'on-hold',
+    name: 'Candidate Declined Interview',
+    slug: 'candidate-declined-interview',
+    isActive: true
+  },
+  {
+    name: 'Awaiting Feedback on Interview',
+    slug: 'awaiting-feedback-interview',
+    isActive: true
+  },
+  {
+    name: 'Candidate Rejected Before Interview',
+    slug: 'candidate-rejected-before-interview',
+    isActive: true
+  },
+  {
+    name: 'Candidate Rejected After Interview',
+    slug: 'candidate-rejected-after-interview',
+    isActive: true
+  },
+  {
+    name: 'Advanced to 2nd Round',
+    slug: 'advanced-to-2nd-round',
+    isActive: true
+  },
+  {
+    name: 'Interview Rescheduled',
+    slug: 'interview-rescheduled',
+    isActive: true
+  },
+  {
+    name: 'Interview No Show',
+    slug: 'interview-no-show',
+    isActive: true
+  },
+  {
+    name: 'Advanced to Final Stage',
+    slug: 'advanced-to-final-stage',
+    isActive: true
+  },
+  {
+    name: 'Verbal Offer',
+    slug: 'verbal-offer',
+    isActive: true
+  },
+  {
+    name: 'Client Offered',
+    slug: 'client-offered',
+    isActive: true
+  },
+  {
+    name: 'Candidate Accepted Offer',
+    slug: 'candidate-accepted-offer',
     isActive: true
   }
 ];
