@@ -2,6 +2,13 @@
 const { PrismaClient } = require('@prisma/client');
 const { hashPassword } = require('../src/utils/password.utils');
 
+// Import seed functions
+const { seedJobStatuses } = require('./seeds/job-status.seed');
+const { seedCandidateStages } = require('./seeds/candidate-stage.seed');
+const { seedJobs } = require('./seeds/job.seed');
+const { seedCandidates } = require('./seeds/candidate.seed');
+const { seedEducation } = require('./seeds/education.seed');
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -9,6 +16,13 @@ async function main() {
 
   // Clear existing data (optional - comment out if you want to keep existing data)
   console.log('🧹 Clearing existing data...');
+  await prisma.education.deleteMany();
+  await prisma.candidateActivity.deleteMany();
+  await prisma.candidate.deleteMany();
+  await prisma.candidateStage.deleteMany();
+  await prisma.jobActivity.deleteMany();
+  await prisma.job.deleteMany();
+  await prisma.jobStatus.deleteMany();
   await prisma.rolePermission.deleteMany();
   await prisma.userRole.deleteMany();
   await prisma.permission.deleteMany();
@@ -250,6 +264,13 @@ async function main() {
   console.log('✅ Default admin user created');
   console.log('📧 Email: admin@trivens.com');
   console.log('🔑 Password: Admin@123');
+
+  // Seed new models
+  await seedJobStatuses();
+  await seedCandidateStages();
+  await seedJobs();
+  await seedCandidates();
+  await seedEducation();
 
   console.log('🎉 Database seeding completed successfully!');
 }

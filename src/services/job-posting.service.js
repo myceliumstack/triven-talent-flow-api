@@ -14,6 +14,21 @@ const jobPostingIncludes = {
   },
   modifiedByUser: {
     select: { id: true, firstName: true, lastName: true, email: true }
+  },
+  jobs: {
+    select: {
+      id: true,
+      jobCode: true,
+      title: true,
+      status: {
+        select: {
+          id: true,
+          name: true,
+          slug: true
+        }
+      },
+      createdAt: true
+    }
   }
 };
 
@@ -190,7 +205,19 @@ class JobPostingService {
     // Build order by
     const orderBy = {};
     if (sortBy) {
-      orderBy[sortBy] = sortOrder;
+      // Handle relation fields specially
+      if (sortBy === 'status') {
+        orderBy.status = {
+          name: sortOrder
+        };
+      } else if (sortBy === 'company') {
+        orderBy.company = {
+          name: sortOrder
+        };
+      } else {
+        // For direct fields on JobPosting model
+        orderBy[sortBy] = sortOrder;
+      }
     }
 
     const [jobPostings, total] = await Promise.all([
@@ -612,6 +639,7 @@ class JobPostingService {
       }
     });
   }
+
 }
 
 module.exports = new JobPostingService();

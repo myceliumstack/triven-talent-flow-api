@@ -501,6 +501,7 @@ const getAllCompanies = async (req, res) => {
   }
 };
 
+
 module.exports = {
   getJobPostings,
   searchJobPostings,

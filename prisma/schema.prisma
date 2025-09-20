@@ -39,6 +39,12 @@ model User {
   modifiedPOCs         POC[]        @relation("POCModifiedBy")
   createdJobPostings   JobPosting[] @relation("JobPostingCreatedBy")
   modifiedJobPostings  JobPosting[] @relation("JobPostingModifiedBy")
+  createdJobs          Job[]        @relation("UserCreatedJobs")
+  modifiedJobs         Job[]        @relation("UserModifiedJobs")
+  jobActivities        JobActivity[] @relation("UserJobActivities")
+  createdCandidates    Candidate[]  @relation("UserCreatedCandidates")
+  modifiedCandidates   Candidate[]  @relation("UserModifiedCandidates")
+  candidateActivities  CandidateActivity[] @relation("UserCandidateActivities")
 
   @@map("users")
 }
@@ -142,6 +148,7 @@ model Company {
   modifiedBy       User?    @relation("CompanyModifiedBy", fields: [modifiedById], references: [id])
   pocs             POC[]
   jobPostings      JobPosting[]
+  jobs             Job[]
 
   @@map("companies")
 }
@@ -199,6 +206,7 @@ model JobPostingStatus {
 
 model JobPosting {
   id              String   @id @default(cuid())
+  jobCode         String?  @unique @map("job_code")
   companyId       String   @map("company_id")
   title           String
   location        String
@@ -227,6 +235,218 @@ model JobPosting {
   status          JobPostingStatus? @relation(fields: [statusId], references: [id])
   createdByUser   User?             @relation("JobPostingCreatedBy", fields: [createdById], references: [id])
   modifiedByUser  User?             @relation("JobPostingModifiedBy", fields: [modifiedById], references: [id])
+  jobs            Job[]
 
   @@map("job_postings")
+}
+
+// ================================================================
+// JOB STATUS MODEL
+// ================================================================
+
+model JobStatus {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  jobs      Job[]
+
+  @@map("job_statuses")
+}
+
+// ================================================================
+// JOB MODEL
+// ================================================================
+
+model Job {
+  id              String      @id @default(cuid())
+  jobCode         String      @unique @map("job_code")
+  title           String
+  description     String?     @db.Text
+  location        String?
+  remoteType      String?     @map("remote_type")
+  timeZone        String?     @map("time_zone")
+
+  minSalary       Decimal?    @db.Decimal(12,2) @map("min_salary")
+  maxSalary       Decimal?    @db.Decimal(12,2) @map("max_salary")
+  salaryCurrency  String?     @map("salary_currency")
+  salaryNotes     String?     @db.Text @map("salary_notes")
+  feePercentage   Decimal?    @db.Decimal(5,2)  @map("fee_percentage")
+  paymentTerms    String?     @map("payment_terms")
+
+  relocationAssistance Boolean? @map("relocation_assistance")
+  relocationDetails    String?  @db.Text @map("relocation_details")
+  warrantyType     String?      @map("warranty_type")
+  warrantyPeriodDays Int?       @map("warranty_period_days")
+
+  skills           Json?        @map("skills_matrix")
+  booleanSearch    String?      @map("boolean_search")
+  tags             String[]     @map("tags")
+
+  companyId        String       @map("company_id")
+  jobPostingId     String?      @map("job_posting_id")
+  statusId         String       @map("status_id")
+  createdById      String       @map("created_by_id")
+  modifiedById     String?      @map("modified_by_id")
+  isActive         Boolean      @default(true) @map("is_active")
+
+  postingMeta      Json?        @map("posting_meta")
+  candidateCount   Int          @default(0) @map("candidate_count")
+  notes            String?      @db.Text @map("notes")
+
+  company          Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  jobPosting       JobPosting?  @relation(fields: [jobPostingId], references: [id])
+  status           JobStatus    @relation(fields: [statusId], references: [id])
+  createdBy        User         @relation("UserCreatedJobs", fields: [createdById], references: [id])
+  modifiedBy       User?        @relation("UserModifiedJobs", fields: [modifiedById], references: [id])
+
+  activities       JobActivity[]
+  candidates       Candidate[]
+
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  @@map("jobs")
+  @@index([companyId])
+  @@index([statusId])
+  @@index([jobCode])
+}
+
+// ================================================================
+// JOB ACTIVITY MODEL
+// ================================================================
+
+model JobActivity {
+  id           String   @id @default(cuid())
+  jobId        String   @map("job_id")
+  activityType String   @map("activity_type")
+  fromValue    String?  @map("from_value")
+  toValue      String?  @map("to_value")
+  notes        String?  @db.Text
+  createdById  String   @map("created_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  job       Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdBy User @relation("UserJobActivities", fields: [createdById], references: [id])
+
+  @@map("job_activities")
+  @@index([jobId])
+  @@index([createdById])
+}
+
+// ================================================================
+// CANDIDATE STAGE MODEL
+// ================================================================
+
+model CandidateStage {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  candidates Candidate[]
+
+  @@map("candidate_stages")
+}
+
+// ================================================================
+// CANDIDATE ACTIVITY MODEL
+// ================================================================
+
+model CandidateActivity {
+  id           String   @id @default(cuid())
+  candidateId  String   @map("candidate_id")
+  activityType String   @map("activity_type")
+  fromValue    String?  @map("from_value")
+  toValue      String?  @map("to_value")
+  notes        String?  @db.Text
+  createdById  String   @map("created_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  createdBy   User      @relation("UserCandidateActivities", fields: [createdById], references: [id])
+
+  @@map("candidate_activities")
+  @@index([candidateId])
+  @@index([createdById])
+}
+
+// ================================================================
+// CANDIDATE MODEL
+// ================================================================
+
+model Candidate {
+  id              String   @id @default(cuid())
+  jobId           String   @map("job_id")
+  currentStageId  String   @map("stage_id")
+
+  firstName       String   @map("first_name")
+  lastName        String   @map("last_name")
+  email           String?
+  phone           String?
+  location        String?
+
+  isApplicant     Boolean  @default(false) @map("is_applicant")
+
+  skills          String[] @map("skills")
+  experienceYears Int?     @map("experience_years")
+  availability    String?  @map("availability")
+  expectedSalary  Decimal? @db.Decimal(12,2) @map("expected_salary")
+  currentEmployer String?  @map("current_employer")
+  employmentType  String?  @map("employment_type")
+
+  certifications  String[] @map("certifications")
+
+  resumeUrl       String?  @map("resume_url")
+  linkedInUrl     String?  @map("linkedin_url")
+
+  createdById     String   @map("created_by_id")
+  modifiedById    String?  @map("modified_by_id")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  job             Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  currentStage    CandidateStage  @relation(fields: [currentStageId], references: [id])
+  createdBy       User            @relation("UserCreatedCandidates", fields: [createdById], references: [id])
+  modifiedBy      User?           @relation("UserModifiedCandidates", fields: [modifiedById], references: [id])
+  activities      CandidateActivity[]
+  education       Education[]
+
+  @@map("candidates")
+  @@index([jobId])
+  @@index([currentStageId])
+}
+
+// ================================================================
+// EDUCATION MODEL
+// ================================================================
+
+model Education {
+  id            String   @id @default(cuid())
+  candidateId   String   @map("candidate_id")
+  degree        String
+  institution   String
+  fieldOfStudy  String   @map("field_of_study")
+  graduationYear Int?    @map("graduation_year")
+  gpa           Decimal? @db.Decimal(3,2) @map("gpa")
+  isCompleted   Boolean  @default(true) @map("is_completed")
+  startYear     Int?     @map("start_year")
+  endYear       Int?     @map("end_year")
+  location      String?
+  description   String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("education")
+  @@index([candidateId])
+  @@index([institution])
+  @@index([degree])
 }

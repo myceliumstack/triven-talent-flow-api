@@ -78,6 +78,7 @@ router.patch('/:id/validation', updateJobPostingValidation);
 // PATCH /api/job-postings/:id/assign-bdm - Assign BDM to job posting
 router.patch('/:id/assign-bdm', assignBDMToJobPosting);
 
+
 // DELETE /api/job-postings/:id - Delete job posting
 router.delete('/:id', deleteJobPosting);
 
