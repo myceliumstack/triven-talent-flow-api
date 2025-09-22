@@ -12,6 +12,9 @@ router.post('/', CandidateController.createCandidate);
 // Get all candidates
 router.get('/', CandidateController.getAllCandidates);
 
+// Get candidates by job code
+router.get('/jobs/:jobCode', CandidateController.getCandidatesByJobCode);
+
 // Get candidate by ID
 router.get('/:id', CandidateController.getCandidateById);
 

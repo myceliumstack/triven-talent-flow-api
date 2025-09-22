@@ -348,10 +348,106 @@ const deleteCandidate = async (id) => {
   }
 };
 
+const getCandidatesByJobCode = async (jobCode, options = {}) => {
+  try {
+    const { page = 1, limit = 10 } = options;
+    const skip = (page - 1) * limit;
+
+    const [candidates, totalCount] = await Promise.all([
+      prisma.candidate.findMany({
+        where: {
+          job: {
+            jobCode: jobCode
+          },
+          isActive: true
+        },
+        include: {
+          job: {
+            select: {
+              id: true,
+              jobCode: true,
+              title: true
+            }
+          },
+          currentStage: {
+            select: {
+              id: true,
+              name: true,
+              slug: true
+            }
+          },
+          createdBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true
+            }
+          },
+          education: {
+            select: {
+              id: true,
+              degree: true,
+              institution: true,
+              fieldOfStudy: true,
+              graduationYear: true,
+              isCompleted: true
+            }
+          },
+          activities: {
+            take: 5,
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              activityType: true,
+              notes: true,
+              fromValue: true,
+              toValue: true,
+              createdAt: true,
+              createdBy: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        },
+        skip,
+        take: limit
+      }),
+      prisma.candidate.count({
+        where: {
+          job: {
+            jobCode: jobCode
+          },
+          isActive: true
+        }
+      })
+    ]);
+
+    return {
+      candidates,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: totalCount,
+        pages: Math.ceil(totalCount / limit)
+      }
+    };
+  } catch (error) {
+    throw new Error(`Error fetching candidates by job code: ${error.message}`);
+  }
+};
+
 module.exports = {
   createCandidate,
   getAllCandidates,
   getCandidateById,
+  getCandidatesByJobCode,
   updateCandidate,
   deleteCandidate
 };

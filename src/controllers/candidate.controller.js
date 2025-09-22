@@ -210,10 +210,42 @@ const deleteCandidate = async (req, res) => {
   }
 };
 
+const getCandidatesByJobCode = async (req, res) => {
+  try {
+    const { jobCode } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    if (!jobCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Job code is required'
+      });
+    }
+
+    const result = await CandidateService.getCandidatesByJobCode(jobCode, {
+      page: parseInt(page),
+      limit: parseInt(limit)
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Candidates fetched successfully',
+      data: result.candidates,
+      pagination: result.pagination
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   createCandidate,
   getAllCandidates,
   getCandidateById,
+  getCandidatesByJobCode,
   updateCandidate,
   deleteCandidate
 };
