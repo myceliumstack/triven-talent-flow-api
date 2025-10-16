@@ -3,13 +3,12 @@ const prisma = require('../config/database');
 
 // No mapping needed - using string fields directly
 
-class CompanyService {
-  /**
-   * Get all companies with pagination and filters
-   * @param {Object} options - Query options
-   * @returns {Promise<Object>} Companies with pagination info
-   */
-  async getAllCompanies(options = {}) {
+/**
+ * Get all companies with pagination and filters
+ * @param {Object} options - Query options
+ * @returns {Promise<Object>} Companies with pagination info
+ */
+const getAllCompanies = async (options = {}) => {
     const {
       page = 1,
       limit = 10,
@@ -81,14 +80,14 @@ class CompanyService {
         totalPages: Math.ceil(total / limit)
       }
     };
-  }
+};
 
-  /**
-   * Search companies by query
-   * @param {string} query - Search query
-   * @returns {Promise<Array>} Matching companies
-   */
-  async searchCompanies(query) {
+/**
+ * Search companies by query
+ * @param {string} query - Search query
+ * @returns {Promise<Array>} Matching companies
+ */
+const searchCompanies = async (query) => {
     if (!query || query.length < 2) {
       return [];
     }
@@ -110,14 +109,14 @@ class CompanyService {
       take: 10,
       orderBy: { name: 'asc' }
     });
-  }
+};
 
-  /**
-   * Get company by ID
-   * @param {string} id - Company ID
-   * @returns {Promise<Object>} Company details
-   */
-  async getCompanyById(id) {
+/**
+ * Get company by ID
+ * @param {string} id - Company ID
+ * @returns {Promise<Object>} Company details
+ */
+const getCompanyById = async (id) => {
     const company = await prisma.company.findUnique({
       where: { id },
       include: {
@@ -138,15 +137,15 @@ class CompanyService {
     }
 
     return company;
-  }
+};
 
-  /**
-   * Create new company
-   * @param {Object} companyData - Company data
-   * @param {string} createdById - User ID who created the company
-   * @returns {Promise<Object>} Created company
-   */
-  async createCompany(companyData, createdById) {
+/**
+ * Create new company
+ * @param {Object} companyData - Company data
+ * @param {string} createdById - User ID who created the company
+ * @returns {Promise<Object>} Created company
+ */
+const createCompany = async (companyData, createdById) => {
     // Check if company with same name already exists
     const existingCompany = await prisma.company.findFirst({
       where: { name: companyData.name }
@@ -169,16 +168,16 @@ class CompanyService {
     });
 
     return company;
-  }
+};
 
-  /**
-   * Update company
-   * @param {string} id - Company ID
-   * @param {Object} updateData - Update data
-   * @param {string} modifiedById - User ID who modified the company
-   * @returns {Promise<Object>} Updated company
-   */
-  async updateCompany(id, updateData, modifiedById) {
+/**
+ * Update company
+ * @param {string} id - Company ID
+ * @param {Object} updateData - Update data
+ * @param {string} modifiedById - User ID who modified the company
+ * @returns {Promise<Object>} Updated company
+ */
+const updateCompany = async (id, updateData, modifiedById) => {
     // Check if company exists
     const existingCompany = await prisma.company.findUnique({
       where: { id }
@@ -237,14 +236,14 @@ class CompanyService {
       }
       throw error;
     }
-  }
+};
 
-  /**
-   * Delete company
-   * @param {string} id - Company ID
-   * @returns {Promise<boolean>} Success status
-   */
-  async deleteCompany(id) {
+/**
+ * Delete company
+ * @param {string} id - Company ID
+ * @returns {Promise<boolean>} Success status
+ */
+const deleteCompany = async (id) => {
     const company = await prisma.company.findUnique({
       where: { id },
       include: {
@@ -268,14 +267,14 @@ class CompanyService {
     });
 
     return true;
-  }
+};
 
-  /**
-   * Get company statistics
-   * @param {string} id - Company ID
-   * @returns {Promise<Object>} Company statistics
-   */
-  async getCompanyStats(id) {
+/**
+ * Get company statistics
+ * @param {string} id - Company ID
+ * @returns {Promise<Object>} Company statistics
+ */
+const getCompanyStats = async (id) => {
     const company = await prisma.company.findUnique({
       where: { id }
     });
@@ -301,14 +300,14 @@ class CompanyService {
       activeJobPostings,
       inactiveJobPostings: jobPostingCount - activeJobPostings
     };
-  }
+};
 
-  /**
-   * Get companies by industry
-   * @param {string} industry - Industry name
-   * @returns {Promise<Array>} Companies in the industry
-   */
-  async getCompaniesByIndustry(industry) {
+/**
+ * Get companies by industry
+ * @param {string} industry - Industry name
+ * @returns {Promise<Array>} Companies in the industry
+ */
+const getCompaniesByIndustry = async (industry) => {
     return await prisma.company.findMany({
       where: { industry },
       select: {
@@ -320,14 +319,14 @@ class CompanyService {
       },
       orderBy: { name: 'asc' }
     });
-  }
+};
 
-  /**
-   * Get companies by agreement status
-   * @param {string} status - Agreement status
-   * @returns {Promise<Array>} Companies with the status
-   */
-  async getCompaniesByAgreementStatus(status) {
+/**
+ * Get companies by agreement status
+ * @param {string} status - Agreement status
+ * @returns {Promise<Array>} Companies with the status
+ */
+const getCompaniesByAgreementStatus = async (status) => {
     return await prisma.company.findMany({
       where: { agreementStatus: status },
       select: {
@@ -340,7 +339,16 @@ class CompanyService {
       },
       orderBy: { name: 'asc' }
     });
-  }
-}
+};
 
-module.exports = new CompanyService();
+module.exports = {
+  getAllCompanies,
+  searchCompanies,
+  getCompanyById,
+  createCompany,
+  updateCompany,
+  deleteCompany,
+  getCompanyStats,
+  getCompaniesByIndustry,
+  getCompaniesByAgreementStatus
+};

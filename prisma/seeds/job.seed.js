@@ -36,7 +36,7 @@ async function seedJobs() {
         relocationDetails: 'Up to $10,000 relocation assistance provided',
         warrantyType: 'Replacement',
         warrantyPeriodDays: 90,
-        skills: {
+        skillsMatrix: {
           required: ['JavaScript', 'React', 'Node.js', 'PostgreSQL'],
           preferred: ['TypeScript', 'AWS', 'Docker', 'GraphQL']
         },
@@ -70,7 +70,7 @@ async function seedJobs() {
         relocationAssistance: false,
         warrantyType: 'Refund',
         warrantyPeriodDays: 60,
-        skills: {
+        skillsMatrix: {
           required: ['AWS', 'Docker', 'Kubernetes', 'Terraform'],
           preferred: ['Python', 'Jenkins', 'Prometheus', 'Grafana']
         },
@@ -105,7 +105,7 @@ async function seedJobs() {
         relocationDetails: 'Relocation assistance up to $5,000',
         warrantyType: 'Replacement',
         warrantyPeriodDays: 90,
-        skills: {
+        skillsMatrix: {
           required: ['HTML', 'CSS', 'JavaScript', 'React'],
           preferred: ['TypeScript', 'Next.js', 'Tailwind CSS', 'Figma']
         },

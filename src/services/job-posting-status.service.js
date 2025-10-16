@@ -1,13 +1,12 @@
 // src/services/job-posting-status.service.js
 const prisma = require('../config/database');
 
-class JobPostingStatusService {
-  /**
-   * Get all job posting statuses with pagination and filters
-   * @param {Object} options - Query options
-   * @returns {Promise<Object>} Statuses with pagination info
-   */
-  async getAllStatuses(options = {}) {
+/**
+ * Get all job posting statuses with pagination and filters
+ * @param {Object} options - Query options
+ * @returns {Promise<Object>} Statuses with pagination info
+ */
+const getAllStatuses = async (options = {}) => {
     const {
       page = 1,
       limit = 50,
@@ -61,14 +60,14 @@ class JobPostingStatusService {
         totalPages: Math.ceil(total / limit)
       }
     };
-  }
+};
 
-  /**
-   * Get job posting status by ID
-   * @param {string} id - Status ID
-   * @returns {Promise<Object>} Status details
-   */
-  async getStatusById(id) {
+/**
+ * Get job posting status by ID
+ * @param {string} id - Status ID
+ * @returns {Promise<Object>} Status details
+ */
+const getStatusById = async (id) => {
     const status = await prisma.jobPostingStatus.findUnique({
       where: { id },
       include: {
@@ -83,14 +82,14 @@ class JobPostingStatusService {
     }
 
     return status;
-  }
+};
 
-  /**
-   * Get job posting status by name
-   * @param {string} name - Status name
-   * @returns {Promise<Object>} Status details
-   */
-  async getStatusByName(name) {
+/**
+ * Get job posting status by name
+ * @param {string} name - Status name
+ * @returns {Promise<Object>} Status details
+ */
+const getStatusByName = async (name) => {
     const status = await prisma.jobPostingStatus.findFirst({
       where: { name },
       include: {
@@ -105,14 +104,14 @@ class JobPostingStatusService {
     }
 
     return status;
-  }
+};
 
-  /**
-   * Create new job posting status
-   * @param {Object} statusData - Status data
-   * @returns {Promise<Object>} Created status
-   */
-  async createStatus(statusData) {
+/**
+ * Create new job posting status
+ * @param {Object} statusData - Status data
+ * @returns {Promise<Object>} Created status
+ */
+const createStatus = async (statusData) => {
     // Check if status with same name already exists
     const existingStatus = await prisma.jobPostingStatus.findFirst({
       where: { name: statusData.name }
@@ -132,15 +131,15 @@ class JobPostingStatusService {
     });
 
     return status;
-  }
+};
 
-  /**
-   * Update job posting status
-   * @param {string} id - Status ID
-   * @param {Object} updateData - Update data
-   * @returns {Promise<Object>} Updated status
-   */
-  async updateStatus(id, updateData) {
+/**
+ * Update job posting status
+ * @param {string} id - Status ID
+ * @param {Object} updateData - Update data
+ * @returns {Promise<Object>} Updated status
+ */
+const updateStatus = async (id, updateData) => {
     const existingStatus = await prisma.jobPostingStatus.findUnique({
       where: { id }
     });
@@ -174,14 +173,14 @@ class JobPostingStatusService {
     });
 
     return status;
-  }
+};
 
-  /**
-   * Delete job posting status
-   * @param {string} id - Status ID
-   * @returns {Promise<boolean>} Success status
-   */
-  async deleteStatus(id) {
+/**
+ * Delete job posting status
+ * @param {string} id - Status ID
+ * @returns {Promise<boolean>} Success status
+ */
+const deleteStatus = async (id) => {
     // Check if status exists
     const status = await prisma.jobPostingStatus.findUnique({
       where: { id },
@@ -206,14 +205,14 @@ class JobPostingStatusService {
     });
 
     return true;
-  }
+};
 
-  /**
-   * Toggle status active/inactive
-   * @param {string} id - Status ID
-   * @returns {Promise<Object>} Updated status
-   */
-  async toggleStatus(id) {
+/**
+ * Toggle status active/inactive
+ * @param {string} id - Status ID
+ * @returns {Promise<Object>} Updated status
+ */
+const toggleStatus = async (id) => {
     const status = await prisma.jobPostingStatus.findUnique({
       where: { id }
     });
@@ -231,13 +230,13 @@ class JobPostingStatusService {
         }
       }
     });
-  }
+};
 
-  /**
-   * Get status statistics
-   * @returns {Promise<Object>} Status statistics
-   */
-  async getStatusStats() {
+/**
+ * Get status statistics
+ * @returns {Promise<Object>} Status statistics
+ */
+const getStatusStats = async () => {
     const [totalStatuses, activeStatuses, inactiveStatuses] = await Promise.all([
       prisma.jobPostingStatus.count(),
       prisma.jobPostingStatus.count({ where: { isActive: true } }),
@@ -267,14 +266,14 @@ class JobPostingStatusService {
       inactive: inactiveStatuses,
       usage: statusUsage
     };
-  }
+};
 
-  /**
-   * Search statuses
-   * @param {string} query - Search query
-   * @returns {Promise<Array>} Matching statuses
-   */
-  async searchStatuses(query) {
+/**
+ * Search statuses
+ * @param {string} query - Search query
+ * @returns {Promise<Array>} Matching statuses
+ */
+const searchStatuses = async (query) => {
     if (!query || query.length < 2) {
       return [];
     }
@@ -292,7 +291,16 @@ class JobPostingStatusService {
       },
       orderBy: { name: 'asc' }
     });
-  }
-}
+};
 
-module.exports = new JobPostingStatusService();
+module.exports = {
+  getAllStatuses,
+  getStatusById,
+  getStatusByName,
+  createStatus,
+  updateStatus,
+  deleteStatus,
+  toggleStatus,
+  getStatusStats,
+  searchStatuses
+};

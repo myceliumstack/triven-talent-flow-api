@@ -1,8 +1,14 @@
 // prisma/seed.js
 const { PrismaClient } = require('@prisma/client');
-const { hashPassword } = require('../src/utils/password.utils');
 
 // Import seed functions
+const { seedRBAC } = require('./seeds/rbac.seed');
+const { seedUsers } = require('./seeds/user.seed');
+const { seedEntities } = require('./seeds/entity.seed');
+const { seedCompanies } = require('./seeds/company.seed');
+const { seedPOCs } = require('./seeds/poc.seed');
+const { seedJobPostingStatuses } = require('./seeds/job-posting-status.seed');
+const { seedJobPostings } = require('./seeds/job-posting.seed');
 const { seedJobStatuses } = require('./seeds/job-status.seed');
 const { seedCandidateStages } = require('./seeds/candidate-stage.seed');
 const { seedJobs } = require('./seeds/job.seed');
@@ -12,267 +18,75 @@ const { seedEducation } = require('./seeds/education.seed');
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seeding...');
+  console.log('🌱 Starting comprehensive database seeding...');
 
-  // Clear existing data (optional - comment out if you want to keep existing data)
-  console.log('🧹 Clearing existing data...');
-  await prisma.education.deleteMany();
-  await prisma.candidateActivity.deleteMany();
-  await prisma.candidate.deleteMany();
-  await prisma.candidateStage.deleteMany();
-  await prisma.jobActivity.deleteMany();
-  await prisma.job.deleteMany();
-  await prisma.jobStatus.deleteMany();
-  await prisma.rolePermission.deleteMany();
-  await prisma.userRole.deleteMany();
-  await prisma.permission.deleteMany();
-  await prisma.role.deleteMany();
-  await prisma.user.deleteMany();
+  try {
+    // 1. Seed RBAC System (Roles, Permissions, Admin User)
+    console.log('\n🔐 Step 1: Seeding RBAC system...');
+    await seedRBAC();
 
-  // Create roles with hierarchy
-  console.log('👑 Creating roles...');
-  const roles = await Promise.all([
-    prisma.role.create({
-      data: {
-        name: 'Admin',
-        description: 'Full system access with all permissions',
-        hierarchy: 0
-      }
-    }),
-    prisma.role.create({
-      data: {
-        name: 'RA Manager',
-        description: 'Research Analyst Manager with team oversight',
-        hierarchy: 1
-      }
-    }),
-    prisma.role.create({
-      data: {
-        name: 'Team Manager',
-      description: 'Team management and coordination',
-        hierarchy: 2
-      }
-    }),
-    prisma.role.create({
-      data: {
-        name: 'BDM',
-        description: 'Business Development Manager',
-        hierarchy: 3
-      }
-    }),
-    prisma.role.create({
-      data: {
-        name: 'Recruiter',
-        description: 'Primary recruitment responsibilities',
-        hierarchy: 4
-      }
-    }),
-    prisma.role.create({
-      data: {
-        name: 'Co-Recruiter',
-        description: 'Secondary recruitment support',
-        hierarchy: 5
-      }
-    }),
-    prisma.role.create({
-      data: {
-        name: 'Research Analyst',
-        description: 'Research and analysis tasks',
-        hierarchy: 6
-      }
-    })
-  ]);
+    // 2. Seed Users (depends on RBAC)
+    console.log('\n👤 Step 2: Seeding users...');
+    await seedUsers();
 
-  console.log('✅ Roles created:', roles.map(r => r.name));
+    // 3. Seed Entities (independent)
+    console.log('\n🏢 Step 3: Seeding entities...');
+    await seedEntities();
 
-  // Create permissions
-  console.log('🔐 Creating permissions...');
-  const permissions = await Promise.all([
-    // User management permissions
-    prisma.permission.create({ data: { name: 'create_user', resource: 'user', action: 'create' } }),
-    prisma.permission.create({ data: { name: 'read_user', resource: 'user', action: 'read' } }),
-    prisma.permission.create({ data: { name: 'update_user', resource: 'user', action: 'update' } }),
-    prisma.permission.create({ data: { name: 'delete_user', resource: 'user', action: 'delete' } }),
-    
-    // Role management permissions
-    prisma.permission.create({ data: { name: 'assign_role', resource: 'role', action: 'assign' } }),
-    prisma.permission.create({ data: { name: 'revoke_role', resource: 'role', action: 'revoke' } }),
-    
-    // System access permissions
-    prisma.permission.create({ data: { name: 'admin_panel', resource: 'system', action: 'admin' } }),
-    prisma.permission.create({ data: { name: 'view_reports', resource: 'reports', action: 'read' } }),
-    prisma.permission.create({ data: { name: 'view_analytics', resource: 'analytics', action: 'read' } }),
-    
-    // Recruitment permissions
-    prisma.permission.create({ data: { name: 'create_candidate', resource: 'candidate', action: 'create' } }),
-    prisma.permission.create({ data: { name: 'view_candidates', resource: 'candidate', action: 'read' } }),
-    prisma.permission.create({ data: { name: 'update_candidates', resource: 'candidate', action: 'update' } }),
-    
-    // Research permissions
-    prisma.permission.create({ data: { name: 'view_research', resource: 'research', action: 'read' } }),
-    prisma.permission.create({ data: { name: 'create_research', resource: 'research', action: 'create' } }),
-    prisma.permission.create({ data: { name: 'update_research', resource: 'research', action: 'update' } })
-  ]);
+    // 4. Seed Job Posting Statuses (independent)
+    console.log('\n📊 Step 4: Seeding job posting statuses...');
+    const jobPostingStatuses = await seedJobPostingStatuses();
 
-  console.log('✅ Permissions created:', permissions.length);
+    // 5. Seed Companies (independent)
+    console.log('\n🏢 Step 5: Seeding companies...');
+    const companies = await seedCompanies();
 
-  // Create role-permission mappings
-  console.log('🔗 Creating role-permission mappings...');
-  
-  // Admin gets all permissions
-  for (const permission of permissions) {
-    await prisma.rolePermission.create({
-      data: {
-        roleId: roles.find(r => r.name === 'Admin').id,
-        permissionId: permission.id
-      }
-    });
+    // 6. Seed POCs (depends on companies)
+    console.log('\n👥 Step 6: Seeding POCs...');
+    const pocs = await seedPOCs(companies);
+
+    // 7. Seed Job Postings (depends on companies and statuses)
+    console.log('\n💼 Step 7: Seeding job postings...');
+    const jobPostings = await seedJobPostings(companies, jobPostingStatuses);
+
+    // 8. Seed Job Statuses (independent)
+    console.log('\n📊 Step 8: Seeding job statuses...');
+    const jobStatuses = await seedJobStatuses();
+
+    // 9. Seed Candidate Stages (independent)
+    console.log('\n📊 Step 9: Seeding candidate stages...');
+    const candidateStages = await seedCandidateStages();
+
+    // 10. Seed Jobs (depends on job postings and statuses)
+    console.log('\n💼 Step 10: Seeding jobs...');
+    const jobs = await seedJobs(jobPostings, jobStatuses);
+
+    // 11. Seed Candidates (independent)
+    console.log('\n👥 Step 11: Seeding candidates...');
+    const candidates = await seedCandidates();
+
+    // 12. Seed Education (depends on candidates)
+    console.log('\n🎓 Step 12: Seeding education...');
+    await seedEducation(candidates);
+
+    console.log('\n🎉 Comprehensive database seeding completed successfully!');
+    console.log('\n📊 Final Summary:');
+    console.log('   ✅ Enhanced RBAC system with hierarchy');
+    console.log('   ✅ 65 users with proper role assignments');
+    console.log('   ✅ All business entities seeded');
+    console.log('   ✅ Complete organizational structure');
+    console.log('   ✅ Ready for production use');
+
+    console.log('\n🔑 Default Login Credentials:');
+    console.log('   Admin: admin@trivens.com / Admin@123');
+    console.log('   VP: vp@trivens.com / Password123!');
+    console.log('   BDM: bdm@trivens.com / Password123!');
+    console.log('   Recruiter: recruiter@trivens.com / Password123!');
+
+  } catch (error) {
+    console.error('❌ Seeding failed:', error);
+    throw error;
   }
-
-  // RA Manager permissions
-  const raManagerRole = roles.find(r => r.name === 'RA Manager');
-  const raManagerPermissions = [
-    'read_user', 'update_user', 'view_reports', 'view_analytics',
-    'view_candidates', 'update_candidates', 'view_research', 'create_research', 'update_research'
-  ];
-  
-  for (const permName of raManagerPermissions) {
-    const permission = permissions.find(p => p.name === permName);
-    if (permission) {
-      await prisma.rolePermission.create({
-        data: {
-          roleId: raManagerRole.id,
-          permissionId: permission.id
-        }
-      });
-    }
-  }
-
-  // Team Manager permissions
-  const teamManagerRole = roles.find(r => r.name === 'Team Manager');
-  const teamManagerPermissions = [
-    'read_user', 'update_user', 'assign_role', 'view_reports',
-    'view_candidates', 'update_candidates', 'view_research'
-  ];
-  
-  for (const permName of teamManagerPermissions) {
-    const permission = permissions.find(p => p.name === permName);
-    if (permission) {
-      await prisma.rolePermission.create({
-        data: {
-          roleId: teamManagerRole.id,
-          permissionId: permission.id
-        }
-      });
-    }
-  }
-
-  // BDM permissions
-  const bdmRole = roles.find(r => r.name === 'BDM');
-  const bdmPermissions = [
-    'read_user', 'view_reports', 'view_candidates', 'update_candidates'
-  ];
-  
-  for (const permName of bdmPermissions) {
-    const permission = permissions.find(p => p.name === permName);
-    if (permission) {
-      await prisma.rolePermission.create({
-        data: {
-          roleId: bdmRole.id,
-          permissionId: permission.id
-        }
-      });
-    }
-  }
-
-  // Recruiter permissions
-  const recruiterRole = roles.find(r => r.name === 'Recruiter');
-  const recruiterPermissions = [
-    'read_user', 'view_candidates', 'update_candidates', 'view_research'
-  ];
-  
-  for (const permName of recruiterPermissions) {
-    const permission = permissions.find(p => p.name === permName);
-    if (permission) {
-      await prisma.rolePermission.create({
-        data: {
-          roleId: recruiterRole.id,
-          permissionId: permission.id
-        }
-      });
-    }
-  }
-
-  // Co-Recruiter permissions
-  const coRecruiterRole = roles.find(r => r.name === 'Co-Recruiter');
-  const coRecruiterPermissions = [
-    'read_user', 'view_candidates', 'view_research'
-  ];
-  
-  for (const permName of coRecruiterPermissions) {
-    const permission = permissions.find(p => p.name === permName);
-    if (permission) {
-      await prisma.rolePermission.create({
-        data: {
-          roleId: coRecruiterRole.id,
-          permissionId: permission.id
-        }
-      });
-    }
-  }
-
-  // Research Analyst permissions
-  const raRole = roles.find(r => r.name === 'Research Analyst');
-  const raPermissions = [
-    'read_user', 'view_research', 'create_research', 'update_research'
-  ];
-  
-  for (const permName of raPermissions) {
-    const permission = permissions.find(p => p.name === permName);
-    if (permission) {
-      await prisma.rolePermission.create({
-        data: {
-          roleId: raRole.id,
-          permissionId: permission.id
-        }
-      });
-    }
-  }
-
-  console.log('✅ Role-permission mappings created');
-
-  // Create default admin user
-  console.log('👤 Creating default admin user...');
-  const adminPassword = await hashPassword('Admin@123');
-  const adminUser = await prisma.user.create({
-    data: {
-      email: 'admin@trivens.com',
-      password: adminPassword,
-      firstName: 'System',
-      lastName: 'Administrator'
-    }
-  });
-
-  // Assign admin role to admin user
-  await prisma.userRole.create({
-    data: {
-      userId: adminUser.id,
-      roleId: roles.find(r => r.name === 'Admin').id
-    }
-  });
-
-  console.log('✅ Default admin user created');
-  console.log('📧 Email: admin@trivens.com');
-  console.log('🔑 Password: Admin@123');
-
-  // Seed new models
-  await seedJobStatuses();
-  await seedCandidateStages();
-  await seedJobs();
-  await seedCandidates();
-  await seedEducation();
-
-  console.log('🎉 Database seeding completed successfully!');
 }
 
 main()

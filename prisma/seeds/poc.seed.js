@@ -9,6 +9,12 @@ async function seedPOCs(companies) {
   // Clear existing POCs
   await prisma.pOC.deleteMany();
 
+  // If no companies provided, get them from database
+  if (!companies || companies.length === 0) {
+    companies = await prisma.company.findMany();
+    console.log(`Found ${companies.length} companies in database`);
+  }
+
   const pocs = [
     // TechCorp Solutions POCs
     {

@@ -3,13 +3,12 @@ const prisma = require('../config/database');
 const { hashPassword, comparePassword } = require('../utils/password.utils');
 const { generateToken } = require('../utils/jwt.utils');
 
-class AuthService {
-  /**
-   * Register a new user
-   * @param {Object} userData - User registration data
-   * @returns {Promise<Object>} Created user (without password)
-   */
-  async registerUser(userData) {
+/**
+ * Register a new user
+ * @param {Object} userData - User registration data
+ * @returns {Promise<Object>} Created user (without password)
+ */
+const registerUser = async (userData) => {
     const { email, password, firstName, lastName, roleId } = userData;
 
     // Check if user already exists
@@ -59,15 +58,15 @@ class AuthService {
     // Return user without password
     const { password: _, ...userWithoutPassword } = result;
     return userWithoutPassword;
-  }
+};
 
-  /**
-   * Authenticate user login
-   * @param {string} email - User email
-   * @param {string} password - User password
-   * @returns {Promise<Object>} User data with token and roles
-   */
-  async loginUser(email, password) {
+/**
+ * Authenticate user login
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @returns {Promise<Object>} User data with token and roles
+ */
+const loginUser = async (email, password) => {
     // Find user with roles
     const user = await prisma.user.findUnique({
       where: { email },
@@ -124,14 +123,14 @@ class AuthService {
       roles,
       permissions
     };
-  }
+};
 
-  /**
-   * Get user profile by ID
-   * @param {string} userId - User ID
-   * @returns {Promise<Object>} User profile with roles
-   */
-  async getUserProfile(userId) {
+/**
+ * Get user profile by ID
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} User profile with roles
+ */
+const getUserProfile = async (userId) => {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -149,16 +148,16 @@ class AuthService {
 
     const { password: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
-  }
+};
 
-  /**
-   * Change user password
-   * @param {string} userId - User ID
-   * @param {string} currentPassword - Current password
-   * @param {string} newPassword - New password
-   * @returns {Promise<boolean>} Success status
-   */
-  async changePassword(userId, currentPassword, newPassword) {
+/**
+ * Change user password
+ * @param {string} userId - User ID
+ * @param {string} currentPassword - Current password
+ * @param {string} newPassword - New password
+ * @returns {Promise<boolean>} Success status
+ */
+const changePassword = async (userId, currentPassword, newPassword) => {
     const user = await prisma.user.findUnique({
       where: { id: userId }
     });
@@ -183,7 +182,11 @@ class AuthService {
     });
 
     return true;
-  }
-}
+};
 
-module.exports = new AuthService();
+module.exports = {
+  registerUser,
+  loginUser,
+  getUserProfile,
+  changePassword
+};

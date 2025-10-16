@@ -1,0 +1,5 @@
+---
+description: Almost always use pnpm where applicable
+globs:
+alwaysApply: true
+---

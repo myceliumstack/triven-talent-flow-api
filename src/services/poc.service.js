@@ -1,13 +1,12 @@
 // src/services/poc.service.js
 const prisma = require('../config/database');
 
-class POCService {
-  /**
-   * Get all POCs with pagination and filters
-   * @param {Object} options - Query options
-   * @returns {Promise<Object>} POCs with pagination info
-   */
-  async getAllPOCs(options = {}) {
+/**
+ * Get all POCs with pagination and filters
+ * @param {Object} options - Query options
+ * @returns {Promise<Object>} POCs with pagination info
+ */
+const getAllPOCs = async (options = {}) => {
     const {
       page = 1,
       limit = 10,
@@ -65,14 +64,14 @@ class POCService {
         totalPages: Math.ceil(total / limit)
       }
     };
-  }
+};
 
-  /**
-   * Get POCs by company ID
-   * @param {string} companyId - Company ID
-   * @returns {Promise<Array>} POCs for the company
-   */
-  async getPOCsByCompanyId(companyId) {
+/**
+ * Get POCs by company ID
+ * @param {string} companyId - Company ID
+ * @returns {Promise<Array>} POCs for the company
+ */
+const getPOCsByCompanyId = async (companyId) => {
     // Verify company exists
     const company = await prisma.company.findUnique({
       where: { id: companyId }
@@ -94,14 +93,14 @@ class POCService {
         }
       }
     });
-  }
+};
 
-  /**
-   * Get POC by ID
-   * @param {string} id - POC ID
-   * @returns {Promise<Object>} POC details
-   */
-  async getPOCById(id) {
+/**
+ * Get POC by ID
+ * @param {string} id - POC ID
+ * @returns {Promise<Object>} POC details
+ */
+const getPOCById = async (id) => {
     const poc = await prisma.pOC.findUnique({
       where: { id },
       include: {
@@ -122,15 +121,15 @@ class POCService {
     }
 
     return poc;
-  }
+};
 
-  /**
-   * Create new POC
-   * @param {Object} pocData - POC data
-   * @param {string} createdById - User ID who created the POC
-   * @returns {Promise<Object>} Created POC
-   */
-  async createPOC(pocData, createdById) {
+/**
+ * Create new POC
+ * @param {Object} pocData - POC data
+ * @param {string} createdById - User ID who created the POC
+ * @returns {Promise<Object>} Created POC
+ */
+const createPOC = async (pocData, createdById) => {
     // Verify company exists
     const company = await prisma.company.findUnique({
       where: { id: pocData.companyId }
@@ -165,16 +164,16 @@ class POCService {
     });
 
     return poc;
-  }
+};
 
-  /**
-   * Update POC
-   * @param {string} id - POC ID
-   * @param {Object} updateData - Update data
-   * @param {string} modifiedById - User ID who modified the POC
-   * @returns {Promise<Object>} Updated POC
-   */
-  async updatePOC(id, updateData, modifiedById) {
+/**
+ * Update POC
+ * @param {string} id - POC ID
+ * @param {Object} updateData - Update data
+ * @param {string} modifiedById - User ID who modified the POC
+ * @returns {Promise<Object>} Updated POC
+ */
+const updatePOC = async (id, updateData, modifiedById) => {
     // Check if POC exists
     const existingPOC = await prisma.pOC.findUnique({
       where: { id }
@@ -215,14 +214,14 @@ class POCService {
     });
 
     return poc;
-  }
+};
 
-  /**
-   * Delete POC
-   * @param {string} id - POC ID
-   * @returns {Promise<boolean>} Success status
-   */
-  async deletePOC(id) {
+/**
+ * Delete POC
+ * @param {string} id - POC ID
+ * @returns {Promise<boolean>} Success status
+ */
+const deletePOC = async (id) => {
     const poc = await prisma.pOC.findUnique({
       where: { id }
     });
@@ -236,14 +235,14 @@ class POCService {
     });
 
     return true;
-  }
+};
 
-  /**
-   * Get POCs by designation
-   * @param {string} designation - POC designation
-   * @returns {Promise<Array>} POCs with the designation
-   */
-  async getPOCsByDesignation(designation) {
+/**
+ * Get POCs by designation
+ * @param {string} designation - POC designation
+ * @returns {Promise<Array>} POCs with the designation
+ */
+const getPOCsByDesignation = async (designation) => {
     return await prisma.pOC.findMany({
       where: { designation },
       include: {
@@ -253,14 +252,14 @@ class POCService {
       },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }]
     });
-  }
+};
 
-  /**
-   * Get POCs by department
-   * @param {string} department - POC department
-   * @returns {Promise<Array>} POCs in the department
-   */
-  async getPOCsByDepartment(department) {
+/**
+ * Get POCs by department
+ * @param {string} department - POC department
+ * @returns {Promise<Array>} POCs in the department
+ */
+const getPOCsByDepartment = async (department) => {
     return await prisma.pOC.findMany({
       where: { department },
       include: {
@@ -270,14 +269,14 @@ class POCService {
       },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }]
     });
-  }
+};
 
-  /**
-   * Search POCs
-   * @param {string} query - Search query
-   * @returns {Promise<Array>} Matching POCs
-   */
-  async searchPOCs(query) {
+/**
+ * Search POCs
+ * @param {string} query - Search query
+ * @returns {Promise<Array>} Matching POCs
+ */
+const searchPOCs = async (query) => {
     if (!query || query.length < 2) {
       return [];
     }
@@ -306,13 +305,13 @@ class POCService {
       take: 10,
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }]
     });
-  }
+};
 
-  /**
-   * Get POC statistics
-   * @returns {Promise<Object>} POC statistics
-   */
-  async getPOCStats() {
+/**
+ * Get POC statistics
+ * @returns {Promise<Object>} POC statistics
+ */
+const getPOCStats = async () => {
     const [total, byDesignation, byDepartment] = await Promise.all([
       prisma.pOC.count(),
       prisma.pOC.groupBy({
@@ -340,14 +339,14 @@ class POCService {
         count: item._count.department
       }))
     };
-  }
+};
 
-  /**
-   * Get POC statistics for a specific company
-   * @param {string} companyId - Company ID
-   * @returns {Promise<Object>} Company POC statistics
-   */
-  async getCompanyPOCStats(companyId) {
+/**
+ * Get POC statistics for a specific company
+ * @param {string} companyId - Company ID
+ * @returns {Promise<Object>} Company POC statistics
+ */
+const getCompanyPOCStats = async (companyId) => {
     const company = await prisma.company.findUnique({
       where: { id: companyId }
     });
@@ -383,7 +382,18 @@ class POCService {
         count: item._count.department
       }))
     };
-  }
-}
+};
 
-module.exports = new POCService();
+module.exports = {
+  getAllPOCs,
+  getPOCById,
+  createPOC,
+  updatePOC,
+  deletePOC,
+  getPOCsByCompanyId,
+  getPOCsByDesignation,
+  getPOCsByDepartment,
+  searchPOCs,
+  getPOCStats,
+  getCompanyPOCStats
+};

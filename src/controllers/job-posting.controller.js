@@ -501,6 +501,435 @@ const getAllCompanies = async (req, res) => {
   }
 };
 
+/**
+ * Bulk validate multiple job postings
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const bulkValidateJobPostings = async (req, res) => {
+  try {
+    const { jobPostingIds } = req.body;
+    const userId = req.user.userId; // Assuming user ID is in the JWT token
+
+    // Validate input
+    if (!jobPostingIds || !Array.isArray(jobPostingIds) || jobPostingIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Job posting IDs array is required and must not be empty'
+      });
+    }
+
+    // Validate array length (prevent abuse)
+    if (jobPostingIds.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot validate more than 100 job postings at once'
+      });
+    }
+
+    // Call service method
+    const result = await JobPostingService.bulkValidateJobPostings(jobPostingIds, userId);
+
+    // Determine response status
+    const statusCode = result.failedCount > 0 ? 207 : 200; // 207 for partial success
+
+    res.status(statusCode).json({
+      success: true,
+      message: `Successfully validated ${result.validatedCount} job postings`,
+      validatedCount: result.validatedCount,
+      failedCount: result.failedCount,
+      results: result.results,
+      errors: result.errors
+    });
+
+  } catch (error) {
+    console.error('Bulk validation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during bulk validation',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Bulk unvalidate multiple job postings
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const bulkUnvalidateJobPostings = async (req, res) => {
+  try {
+    const { jobPostingIds } = req.body;
+    const userId = req.user.userId; // Assuming user ID is in the JWT token
+
+    // Validate input
+    if (!jobPostingIds || !Array.isArray(jobPostingIds) || jobPostingIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Job posting IDs array is required and must not be empty'
+      });
+    }
+
+    // Validate array length (prevent abuse)
+    if (jobPostingIds.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot unvalidate more than 100 job postings at once'
+      });
+    }
+
+    // Call service method
+    const result = await JobPostingService.bulkUnvalidateJobPostings(jobPostingIds, userId);
+
+    // Determine response status
+    const statusCode = result.failedCount > 0 ? 207 : 200; // 207 for partial success
+
+    res.status(statusCode).json({
+      success: true,
+      message: `Successfully unvalidated ${result.unvalidatedCount} job postings`,
+      unvalidatedCount: result.unvalidatedCount,
+      failedCount: result.failedCount,
+      results: result.results,
+      errors: result.errors
+    });
+
+  } catch (error) {
+    console.error('Bulk unvalidation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during bulk unvalidation',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Bulk assign job postings to entities
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const bulkAssignJobPostingsToEntities = async (req, res) => {
+  try {
+    const {
+      jobPostingIds,
+      entityIds,
+      assignedUserId,
+      statusId,
+      priority = 'normal',
+      notes
+    } = req.body;
+
+    const assignedById = req.user.userId;
+
+    // Validate required fields
+    if (!jobPostingIds || !Array.isArray(jobPostingIds) || jobPostingIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Job posting IDs are required and must be a non-empty array'
+      });
+    }
+
+    if (!entityIds || !Array.isArray(entityIds) || entityIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Entity IDs are required and must be a non-empty array'
+      });
+    }
+
+    if (!assignedUserId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Assigned user ID is required'
+      });
+    }
+
+    if (!statusId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status ID is required'
+      });
+    }
+
+    const result = await JobPostingService.bulkAssignJobPostingsToEntities(
+      jobPostingIds,
+      entityIds,
+      assignedById,
+      assignedUserId,
+      statusId,
+      priority,
+      notes
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Job postings assigned to entities successfully',
+      data: result
+    });
+  } catch (error) {
+    console.error('Error in bulk assignment:', error);
+    
+    if (error.message.includes('not found') || error.message.includes('Job postings not found') || error.message.includes('Entities not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during bulk assignment',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get job posting assignments
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getJobPostingAssignments = async (req, res) => {
+  try {
+    const {
+      page,
+      limit,
+      jobPostingId,
+      entityId,
+      assignedUserId,
+      statusId,
+      priority,
+      sortBy,
+      sortOrder
+    } = req.query;
+
+    const filters = {
+      page: page ? parseInt(page) : undefined,
+      limit: limit ? parseInt(limit) : undefined,
+      jobPostingId,
+      entityId,
+      assignedUserId,
+      statusId,
+      priority,
+      sortBy,
+      sortOrder
+    };
+
+    const result = await JobPostingService.getJobPostingAssignments(filters);
+
+    res.status(200).json({
+      success: true,
+      message: 'Job posting assignments retrieved successfully',
+      data: result.assignments,
+      pagination: result.pagination
+    });
+  } catch (error) {
+    console.error('Error fetching job posting assignments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching assignments',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Update job posting assignment
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const updateJobPostingAssignment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const modifiedById = req.user.userId;
+
+    const updatedAssignment = await JobPostingService.updateJobPostingAssignment(
+      id,
+      updateData,
+      modifiedById
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Job posting assignment updated successfully',
+      data: updatedAssignment
+    });
+  } catch (error) {
+    console.error('Error updating job posting assignment:', error);
+    
+    if (error.message.includes('Assignment not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating assignment',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Delete job posting assignment
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteJobPostingAssignment = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await JobPostingService.deleteJobPostingAssignment(id);
+
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
+  } catch (error) {
+    console.error('Error deleting job posting assignment:', error);
+    
+    if (error.message.includes('Assignment not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while deleting assignment',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get entities for assignment
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getEntitiesForAssignment = async (req, res) => {
+  try {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+
+    const entities = await prisma.entity.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        location: true,
+        description: true
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    await prisma.$disconnect();
+
+    res.status(200).json({
+      success: true,
+      message: 'Entities retrieved successfully',
+      data: entities
+    });
+  } catch (error) {
+    console.error('Error fetching entities:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching entities',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get job posting statuses for assignment
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getJobPostingStatusesForAssignment = async (req, res) => {
+  try {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+
+    const statuses = await prisma.jobPostingStatus.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    await prisma.$disconnect();
+
+    res.status(200).json({
+      success: true,
+      message: 'Job posting statuses retrieved successfully',
+      data: statuses
+    });
+  } catch (error) {
+    console.error('Error fetching job posting statuses:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching statuses',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Create a single job posting assignment
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const createJobPostingAssignment = async (req, res) => {
+  try {
+    const {
+      jobPostingId,
+      entityId,
+      assignedUserId,
+      statusId,
+      priority = 'normal',
+      notes
+    } = req.body;
+
+    const assignedById = req.user.userId; // Get from authenticated user
+
+    // Validate required fields
+    if (!jobPostingId || !entityId || !statusId) {
+      return res.status(400).json({
+        success: false,
+        message: 'jobPostingId, entityId, and statusId are required'
+      });
+    }
+
+    const assignment = await JobPostingService.createJobPostingAssignment(
+      jobPostingId,
+      entityId,
+      assignedById,
+      assignedUserId,
+      statusId,
+      priority,
+      notes
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Job posting assignment created successfully',
+      data: assignment
+    });
+  } catch (error) {
+    console.error('Error creating job posting assignment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create job posting assignment',
+      error: error.message
+    });
+  }
+};
 
 module.exports = {
   getJobPostings,
@@ -517,5 +946,14 @@ module.exports = {
   getJobPostingStats,
   assignBDMToJobPosting,
   getJobPostingsByExperience,
-  getAllCompanies
+  bulkValidateJobPostings,
+  bulkUnvalidateJobPostings,
+  getAllCompanies,
+  bulkAssignJobPostingsToEntities,
+  getJobPostingAssignments,
+  updateJobPostingAssignment,
+  deleteJobPostingAssignment,
+  createJobPostingAssignment,
+  getEntitiesForAssignment,
+  getJobPostingStatusesForAssignment
 };

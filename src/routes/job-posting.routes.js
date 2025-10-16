@@ -16,7 +16,10 @@ const {
   getJobPostingStats,
   assignBDMToJobPosting,
   getJobPostingsByExperience,
-  getAllCompanies
+  getAllCompanies,
+  bulkValidateJobPostings,
+  bulkUnvalidateJobPostings,
+  bulkAssignJobPostingsToEntities
 } = require('../controllers/job-posting.controller');
 const { validateRequest } = require('../utils/validation.utils');
 const { 
@@ -78,6 +81,14 @@ router.patch('/:id/validation', updateJobPostingValidation);
 // PATCH /api/job-postings/:id/assign-bdm - Assign BDM to job posting
 router.patch('/:id/assign-bdm', assignBDMToJobPosting);
 
+// POST /api/job-postings/bulk-validate - Bulk validate multiple job postings
+router.post('/bulk-validate', bulkValidateJobPostings);
+
+// POST /api/job-postings/bulk-unvalidate - Bulk unvalidate multiple job postings
+router.post('/bulk-unvalidate', bulkUnvalidateJobPostings);
+
+// POST /api/job-postings/bulk-assign - Bulk assign job postings to entities
+router.post('/bulk-assign', bulkAssignJobPostingsToEntities);
 
 // DELETE /api/job-postings/:id - Delete job posting
 router.delete('/:id', deleteJobPosting);
