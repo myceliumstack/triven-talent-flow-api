@@ -12,7 +12,7 @@ const getJobPostingAssignments = async (options = {}) => {
       page = 1,
       limit = 10,
       filters = {},
-      sortBy = 'createdAt',
+      sortBy = 'assignedAt',
       sortOrder = 'desc'
     } = options;
 
@@ -36,15 +36,8 @@ const getJobPostingAssignments = async (options = {}) => {
         where,
         include: {
           jobPosting: {
-            select: {
-              id: true,
-              title: true,
-              company: {
-                select: {
-                  id: true,
-                  name: true
-                }
-              }
+            include: {
+              company: true
             }
           },
           entity: {

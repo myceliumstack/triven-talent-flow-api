@@ -2,7 +2,6 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth.middleware');
-const { requirePermission } = require('../middleware/rbac.middleware');
 
 // Import RBAC management controllers
 const {
@@ -35,29 +34,29 @@ router.get('/test', (req, res) => {
 // ================================================================
 
 // Permission CRUD operations
-router.get('/permissions', authenticateToken, requirePermission('role.read'), getAllPermissions);
-router.get('/permissions/:id', authenticateToken, requirePermission('role.read'), getPermissionById);
-router.post('/permissions', authenticateToken, requirePermission('role.create'), createPermission);
-router.put('/permissions/:id', authenticateToken, requirePermission('role.update'), updatePermission);
-router.delete('/permissions/:id', authenticateToken, requirePermission('role.delete'), deletePermission);
+router.get('/permissions', authenticateToken, getAllPermissions);
+router.get('/permissions/:id', authenticateToken, getPermissionById);
+router.post('/permissions', authenticateToken, createPermission);
+router.put('/permissions/:id', authenticateToken, updatePermission);
+router.delete('/permissions/:id', authenticateToken, deletePermission);
 
 // ================================================================
 // ROLE ROUTES
 // ================================================================
 
 // Role CRUD operations
-router.get('/roles', authenticateToken, requirePermission('role.read'), getAllRoles);
-router.get('/roles/:id', authenticateToken, requirePermission('role.read'), getRoleById);
-router.post('/roles', authenticateToken, requirePermission('role.create'), createRole);
-router.put('/roles/:id', authenticateToken, requirePermission('role.update'), updateRole);
-router.delete('/roles/:id', authenticateToken, requirePermission('role.delete'), deleteRole);
+router.get('/roles', authenticateToken, getAllRoles);
+router.get('/roles/:id', authenticateToken, getRoleById);
+router.post('/roles', authenticateToken, createRole);
+router.put('/roles/:id', authenticateToken, updateRole);
+router.delete('/roles/:id', authenticateToken, deleteRole);
 
 // ================================================================
 // ROLE-PERMISSION MANAGEMENT ROUTES
 // ================================================================
 
 // Role-Permission assignment operations
-router.post('/role-permissions/assign', authenticateToken, requirePermission('role.manage'), assignPermissionToRole);
-router.delete('/role-permissions/remove', authenticateToken, requirePermission('role.manage'), removePermissionFromRole);
+router.post('/role-permissions/assign', authenticateToken, assignPermissionToRole);
+router.delete('/role-permissions/remove', authenticateToken, removePermissionFromRole);
 
 module.exports = router;

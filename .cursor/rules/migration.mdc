@@ -1,0 +1,5 @@
+---
+description: Do not migrate anything until I say so. I will have to first review it.
+globs:
+alwaysApply: true
+---

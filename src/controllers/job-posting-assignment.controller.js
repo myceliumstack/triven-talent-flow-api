@@ -17,7 +17,7 @@ const getJobPostingAssignments = async (req, res) => {
       statusId,
       priority,
       assignedById,
-      sortBy = 'createdAt',
+      sortBy = 'assignedAt',
       sortOrder = 'desc'
     } = req.query;
 

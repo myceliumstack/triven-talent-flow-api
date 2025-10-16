@@ -2,7 +2,6 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth.middleware');
-const { requirePermission } = require('../middleware/rbac.middleware');
 const {
   getAllUsers,
   getUserById,
@@ -33,26 +32,26 @@ router.get('/test', (req, res) => {
 router.get('/profile', authenticateToken, getCurrentUserProfile);
 router.put('/profile', authenticateToken, updateCurrentUserProfile);
 
-// User management routes (require admin permissions)
-router.get('/', authenticateToken, requirePermission('user.read'), getAllUsers);
-router.get('/search', authenticateToken, requirePermission('user.read'), searchUsers);
-router.get('/stats', authenticateToken, requirePermission('user.read'), getUserStats);
-router.get('/:id/roles-permissions', authenticateToken, requirePermission('user.read'), getUserRolesAndPermissions);
-router.get('/:id', authenticateToken, requirePermission('user.read'), getUserById);
-router.post('/', authenticateToken, requirePermission('user.create'), createUser);
-router.put('/:id', authenticateToken, requirePermission('user.update'), updateUser);
-router.delete('/:id', authenticateToken, requirePermission('user.delete'), deleteUser);
-router.patch('/:id/toggle-status', authenticateToken, requirePermission('user.update'), toggleUserStatus);
+// User management routes
+router.get('/', authenticateToken, getAllUsers);
+router.get('/search', authenticateToken, searchUsers);
+router.get('/stats', authenticateToken, getUserStats);
+router.get('/:id/roles-permissions', authenticateToken, getUserRolesAndPermissions);
+router.get('/:id', authenticateToken, getUserById);
+router.post('/', authenticateToken, createUser);
+router.put('/:id', authenticateToken, updateUser);
+router.delete('/:id', authenticateToken, deleteUser);
+router.patch('/:id/toggle-status', authenticateToken, toggleUserStatus);
 
 // User role management routes
-router.post('/:userId/roles', authenticateToken, requirePermission('role.manage'), assignRoleToUser);
-router.delete('/:userId/roles/:roleId', authenticateToken, requirePermission('role.manage'), removeRoleFromUser);
+router.post('/:userId/roles', authenticateToken, assignRoleToUser);
+router.delete('/:userId/roles/:roleId', authenticateToken, removeRoleFromUser);
 
 // Role management routes
-router.get('/roles/all', authenticateToken, requirePermission('role.read'), getAllRolesWithPermissions);
-router.get('/permissions/all', authenticateToken, requirePermission('role.read'), getAllPermissions);
-router.post('/roles', authenticateToken, requirePermission('role.create'), createRole);
-router.put('/roles/:roleId', authenticateToken, requirePermission('role.update'), updateRole);
-router.delete('/roles/:roleId', authenticateToken, requirePermission('role.delete'), deleteRole);
+router.get('/roles/all', authenticateToken, getAllRolesWithPermissions);
+router.get('/permissions/all', authenticateToken, getAllPermissions);
+router.post('/roles', authenticateToken, createRole);
+router.put('/roles/:roleId', authenticateToken, updateRole);
+router.delete('/roles/:roleId', authenticateToken, deleteRole);
 
 module.exports = router;
