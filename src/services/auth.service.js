@@ -101,9 +101,31 @@ const loginUser = async (email, password) => {
       throw new Error('Invalid email or password');
     }
 
-    // Extract user roles and permissions
-    const roles = user.userRoles.map(ur => ur.role.name);
-    const permissions = user.userRoles.flatMap(ur => 
+    // Extract complete role information with permissions
+    const rolesWithPermissions = user.userRoles.map(ur => ({
+      id: ur.role.id,
+      name: ur.role.name,
+      description: ur.role.description,
+      hierarchy: ur.role.hierarchy,
+      department: ur.role.department,
+      isActive: ur.role.isActive,
+      createdAt: ur.role.createdAt,
+      updatedAt: ur.role.updatedAt,
+      permissions: ur.role.rolePermissions.map(rp => ({
+        id: rp.permission.id,
+        name: rp.permission.name,
+        resource: rp.permission.resource,
+        action: rp.permission.action,
+        description: rp.permission.description,
+        isActive: rp.permission.isActive,
+        createdAt: rp.permission.createdAt,
+        updatedAt: rp.permission.updatedAt
+      }))
+    }));
+
+    // Extract role names and permission names for JWT token
+    const roleNames = user.userRoles.map(ur => ur.role.name);
+    const permissionNames = user.userRoles.flatMap(ur => 
       ur.role.rolePermissions.map(rp => rp.permission.name)
     );
 
@@ -111,17 +133,18 @@ const loginUser = async (email, password) => {
     const token = generateToken({
       userId: user.id,
       email: user.email,
-      roles,
-      permissions
+      roles: roleNames,
+      permissions: permissionNames
     });
 
-    // Return user data with token
+    // Return user data with complete role information
     const { password: _, ...userWithoutPassword } = user;
     return {
       user: userWithoutPassword,
       token,
-      roles,
-      permissions
+      roles: rolesWithPermissions,
+      roleNames,
+      permissions: permissionNames
     };
 };
 

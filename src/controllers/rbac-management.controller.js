@@ -2,15 +2,13 @@
 const RBACManagementService = require('../services/rbac-management.service');
 
 /**
- * Get all permissions with pagination and filters
+ * Get all permissions with filters (no pagination)
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
 const getAllPermissions = async (req, res) => {
   try {
     const {
-      page = 1,
-      limit = 10,
       resource,
       action,
       isActive,
@@ -20,8 +18,6 @@ const getAllPermissions = async (req, res) => {
     } = req.query;
 
     const result = await RBACManagementService.getAllPermissions({
-      page: parseInt(page),
-      limit: parseInt(limit),
       resource,
       action,
       isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
@@ -34,7 +30,7 @@ const getAllPermissions = async (req, res) => {
       success: true,
       message: 'Permissions retrieved successfully',
       data: result.permissions,
-      pagination: result.pagination
+      total: result.total
     });
   } catch (error) {
     console.error('Error getting permissions:', error);
@@ -179,15 +175,54 @@ const deletePermission = async (req, res) => {
         message: error.message
       });
     }
-    if (error.message === 'Cannot delete permission that is assigned to roles') {
-      return res.status(409).json({
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete permission',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Delete multiple permissions
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deletePermissions = async (req, res) => {
+  try {
+    const { ids } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Permission IDs array is required and cannot be empty'
+      });
+    }
+
+    const result = await RBACManagementService.deletePermissions(ids);
+
+    res.json({
+      success: true,
+      message: result.message,
+      deletedCount: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Error deleting permissions:', error);
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    if (error.message.includes('required and cannot be empty')) {
+      return res.status(400).json({
         success: false,
         message: error.message
       });
     }
     res.status(500).json({
       success: false,
-      message: 'Failed to delete permission',
+      message: 'Failed to delete permissions',
       error: error.message
     });
   }
@@ -463,6 +498,148 @@ const removePermissionFromRole = async (req, res) => {
   }
 };
 
+/**
+ * Assign multiple permissions to role
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const assignPermissionsToRole = async (req, res) => {
+  try {
+    const { roleId, permissionIds } = req.body;
+
+    if (!roleId || !permissionIds || !Array.isArray(permissionIds) || permissionIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Role ID and Permission IDs array are required'
+      });
+    }
+
+    const result = await RBACManagementService.assignPermissionsToRole(roleId, permissionIds);
+
+    res.status(201).json({
+      success: true,
+      message: result.message,
+      assignedCount: result.assignedCount,
+      skippedCount: result.skippedCount
+    });
+  } catch (error) {
+    console.error('Error assigning permissions to role:', error);
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    if (error.message.includes('already assigned')) {
+      return res.status(409).json({
+        success: false,
+        message: error.message
+      });
+    }
+    if (error.message.includes('required and cannot be empty')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Failed to assign permissions to role',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Remove multiple permissions from role
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const removePermissionsFromRole = async (req, res) => {
+  try {
+    const { roleId, permissionIds } = req.body;
+
+    if (!roleId || !permissionIds || !Array.isArray(permissionIds) || permissionIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Role ID and Permission IDs array are required'
+      });
+    }
+
+    const result = await RBACManagementService.removePermissionsFromRole(roleId, permissionIds);
+
+    res.json({
+      success: true,
+      message: result.message,
+      removedCount: result.removedCount
+    });
+  } catch (error) {
+    console.error('Error removing permissions from role:', error);
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    if (error.message.includes('No permission assignments found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    if (error.message.includes('required and cannot be empty')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Failed to remove permissions from role',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get all permissions for a specific role
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getRolePermissions = async (req, res) => {
+  try {
+    const { roleId } = req.params;
+
+    if (!roleId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Role ID is required'
+      });
+    }
+
+    const result = await RBACManagementService.getRolePermissions(roleId);
+
+    res.json({
+      success: true,
+      message: 'Role permissions retrieved successfully',
+      data: result
+    });
+  } catch (error) {
+    console.error('Error getting role permissions:', error);
+    if (error.message === 'Role not found') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get role permissions',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   // Permission CRUD
   getAllPermissions,
@@ -470,6 +647,7 @@ module.exports = {
   createPermission,
   updatePermission,
   deletePermission,
+  deletePermissions,
   
   // Role CRUD
   getAllRoles,
@@ -480,5 +658,8 @@ module.exports = {
   
   // Role-Permission management
   assignPermissionToRole,
-  removePermissionFromRole
+  removePermissionFromRole,
+  assignPermissionsToRole,
+  removePermissionsFromRole,
+  getRolePermissions
 };

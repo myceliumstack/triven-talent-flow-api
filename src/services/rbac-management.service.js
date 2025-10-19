@@ -4,15 +4,13 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 /**
- * Get all permissions with pagination and filters
+ * Get all permissions with filters (no pagination)
  * @param {Object} options - Query options
- * @returns {Promise<Object>} Permissions with pagination
+ * @returns {Promise<Object>} Permissions without pagination
  */
 const getAllPermissions = async (options = {}) => {
   try {
     const {
-      page = 1,
-      limit = 10,
       resource,
       action,
       isActive,
@@ -20,8 +18,6 @@ const getAllPermissions = async (options = {}) => {
       sortBy = 'name',
       sortOrder = 'asc'
     } = options;
-
-    const skip = (page - 1) * limit;
 
     // Build where clause
     const where = {};
@@ -41,33 +37,23 @@ const getAllPermissions = async (options = {}) => {
     const orderBy = {};
     orderBy[sortBy] = sortOrder;
 
-    const [permissions, total] = await Promise.all([
-      prisma.permission.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy,
-        include: {
-          rolePermissions: {
-            include: {
-              role: {
-                select: { id: true, name: true }
-              }
+    const permissions = await prisma.permission.findMany({
+      where,
+      orderBy,
+      include: {
+        rolePermissions: {
+          include: {
+            role: {
+              select: { id: true, name: true }
             }
           }
         }
-      }),
-      prisma.permission.count({ where })
-    ]);
+      }
+    });
 
     return {
       permissions,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
+      total: permissions.length
     };
   } catch (error) {
     console.error('Error in getAllPermissions:', error);
@@ -181,21 +167,14 @@ const deletePermission = async (id) => {
   try {
     // Check if permission exists
     const existingPermission = await prisma.permission.findUnique({
-      where: { id },
-      include: {
-        rolePermissions: true
-      }
+      where: { id }
     });
 
     if (!existingPermission) {
       throw new Error('Permission not found');
     }
 
-    // Check if permission is being used in role assignments
-    if (existingPermission.rolePermissions.length > 0) {
-      throw new Error('Cannot delete permission that is assigned to roles');
-    }
-
+    // Delete permission - cascade will automatically delete related role_permissions
     await prisma.permission.delete({
       where: { id }
     });
@@ -203,6 +182,44 @@ const deletePermission = async (id) => {
     return { success: true, message: 'Permission deleted successfully' };
   } catch (error) {
     console.error('Error in deletePermission:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete multiple permissions
+ * @param {string[]} ids - Array of Permission IDs
+ * @returns {Promise<Object>} Deletion result
+ */
+const deletePermissions = async (ids) => {
+  try {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      throw new Error('Permission IDs array is required and cannot be empty');
+    }
+
+    // Check if all permissions exist
+    const existingPermissions = await prisma.permission.findMany({
+      where: { id: { in: ids } }
+    });
+
+    if (existingPermissions.length !== ids.length) {
+      const foundIds = existingPermissions.map(p => p.id);
+      const notFoundIds = ids.filter(id => !foundIds.includes(id));
+      throw new Error(`Permissions not found: ${notFoundIds.join(', ')}`);
+    }
+
+    // Delete permissions - cascade will automatically delete related role_permissions
+    const result = await prisma.permission.deleteMany({
+      where: { id: { in: ids } }
+    });
+
+    return { 
+      success: true, 
+      message: `${result.count} permissions deleted successfully`,
+      deletedCount: result.count
+    };
+  } catch (error) {
+    console.error('Error in deletePermissions:', error);
     throw error;
   }
 };
@@ -542,6 +559,185 @@ const removePermissionFromRole = async (roleId, permissionId) => {
   }
 };
 
+/**
+ * Assign multiple permissions to role
+ * @param {string} roleId - Role ID
+ * @param {string[]} permissionIds - Array of Permission IDs
+ * @returns {Promise<Object>} Assignment result
+ */
+const assignPermissionsToRole = async (roleId, permissionIds) => {
+  try {
+    if (!permissionIds || !Array.isArray(permissionIds) || permissionIds.length === 0) {
+      throw new Error('Permission IDs array is required and cannot be empty');
+    }
+
+    // Check if role exists
+    const role = await prisma.role.findUnique({
+      where: { id: roleId }
+    });
+
+    if (!role) {
+      throw new Error('Role not found');
+    }
+
+    // Check if all permissions exist
+    const existingPermissions = await prisma.permission.findMany({
+      where: { id: { in: permissionIds } }
+    });
+
+    if (existingPermissions.length !== permissionIds.length) {
+      const foundIds = existingPermissions.map(p => p.id);
+      const notFoundIds = permissionIds.filter(id => !foundIds.includes(id));
+      throw new Error(`Permissions not found: ${notFoundIds.join(', ')}`);
+    }
+
+    // Check for existing assignments to avoid duplicates
+    const existingAssignments = await prisma.rolePermission.findMany({
+      where: {
+        roleId,
+        permissionId: { in: permissionIds }
+      }
+    });
+
+    const existingPermissionIds = existingAssignments.map(ra => ra.permissionId);
+    const newPermissionIds = permissionIds.filter(id => !existingPermissionIds.includes(id));
+
+    if (newPermissionIds.length === 0) {
+      throw new Error('All permissions are already assigned to this role');
+    }
+
+    // Create new assignments
+    const assignments = await prisma.rolePermission.createMany({
+      data: newPermissionIds.map(permissionId => ({
+        roleId,
+        permissionId
+      }))
+    });
+
+    return {
+      success: true,
+      message: `${assignments.count} permissions assigned to role successfully`,
+      assignedCount: assignments.count,
+      skippedCount: existingPermissionIds.length
+    };
+  } catch (error) {
+    console.error('Error in assignPermissionsToRole:', error);
+    throw error;
+  }
+};
+
+/**
+ * Remove multiple permissions from role
+ * @param {string} roleId - Role ID
+ * @param {string[]} permissionIds - Array of Permission IDs
+ * @returns {Promise<Object>} Removal result
+ */
+const removePermissionsFromRole = async (roleId, permissionIds) => {
+  try {
+    if (!permissionIds || !Array.isArray(permissionIds) || permissionIds.length === 0) {
+      throw new Error('Permission IDs array is required and cannot be empty');
+    }
+
+    // Check if role exists
+    const role = await prisma.role.findUnique({
+      where: { id: roleId }
+    });
+
+    if (!role) {
+      throw new Error('Role not found');
+    }
+
+    // Find existing assignments
+    const existingAssignments = await prisma.rolePermission.findMany({
+      where: {
+        roleId,
+        permissionId: { in: permissionIds }
+      }
+    });
+
+    if (existingAssignments.length === 0) {
+      throw new Error('No permission assignments found for this role');
+    }
+
+    // Remove assignments
+    const result = await prisma.rolePermission.deleteMany({
+      where: {
+        roleId,
+        permissionId: { in: permissionIds }
+      }
+    });
+
+    return {
+      success: true,
+      message: `${result.count} permissions removed from role successfully`,
+      removedCount: result.count
+    };
+  } catch (error) {
+    console.error('Error in removePermissionsFromRole:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all permissions for a specific role
+ * @param {string} roleId - Role ID
+ * @returns {Promise<Object>} Role permissions
+ */
+const getRolePermissions = async (roleId) => {
+  try {
+    // Check if role exists
+    const role = await prisma.role.findUnique({
+      where: { id: roleId }
+    });
+
+    if (!role) {
+      throw new Error('Role not found');
+    }
+
+    // Get all permissions assigned to this role
+    const rolePermissions = await prisma.rolePermission.findMany({
+      where: { roleId },
+      include: {
+        permission: {
+          select: {
+            id: true,
+            name: true,
+            resource: true,
+            action: true,
+            description: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        }
+      },
+      orderBy: {
+        permission: {
+          name: 'asc'
+        }
+      }
+    });
+
+    // Extract permissions from the role-permission relationships
+    const permissions = rolePermissions.map(rp => rp.permission);
+
+    return {
+      role: {
+        id: role.id,
+        name: role.name,
+        description: role.description,
+        department: role.department,
+        isActive: role.isActive
+      },
+      permissions,
+      total: permissions.length
+    };
+  } catch (error) {
+    console.error('Error in getRolePermissions:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   // Permission CRUD
   getAllPermissions,
@@ -549,6 +745,7 @@ module.exports = {
   createPermission,
   updatePermission,
   deletePermission,
+  deletePermissions,
   
   // Role CRUD
   getAllRoles,
@@ -559,5 +756,8 @@ module.exports = {
   
   // Role-Permission management
   assignPermissionToRole,
-  removePermissionFromRole
+  removePermissionFromRole,
+  assignPermissionsToRole,
+  removePermissionsFromRole,
+  getRolePermissions
 };

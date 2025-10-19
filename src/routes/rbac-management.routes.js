@@ -11,6 +11,7 @@ const {
   createPermission,
   updatePermission,
   deletePermission,
+  deletePermissions,
   
   // Role CRUD
   getAllRoles,
@@ -21,7 +22,10 @@ const {
   
   // Role-Permission management
   assignPermissionToRole,
-  removePermissionFromRole
+  removePermissionFromRole,
+  assignPermissionsToRole,
+  removePermissionsFromRole,
+  getRolePermissions
 } = require('../controllers/rbac-management.controller');
 
 // Test route
@@ -39,6 +43,7 @@ router.get('/permissions/:id', authenticateToken, getPermissionById);
 router.post('/permissions', authenticateToken, createPermission);
 router.put('/permissions/:id', authenticateToken, updatePermission);
 router.delete('/permissions/:id', authenticateToken, deletePermission);
+router.delete('/permissions', authenticateToken, deletePermissions);
 
 // ================================================================
 // ROLE ROUTES
@@ -47,6 +52,7 @@ router.delete('/permissions/:id', authenticateToken, deletePermission);
 // Role CRUD operations
 router.get('/roles', authenticateToken, getAllRoles);
 router.get('/roles/:id', authenticateToken, getRoleById);
+router.get('/roles/:roleId/permissions', authenticateToken, getRolePermissions);
 router.post('/roles', authenticateToken, createRole);
 router.put('/roles/:id', authenticateToken, updateRole);
 router.delete('/roles/:id', authenticateToken, deleteRole);
@@ -58,5 +64,9 @@ router.delete('/roles/:id', authenticateToken, deleteRole);
 // Role-Permission assignment operations
 router.post('/role-permissions/assign', authenticateToken, assignPermissionToRole);
 router.delete('/role-permissions/remove', authenticateToken, removePermissionFromRole);
+
+// Bulk Role-Permission assignment operations
+router.post('/role-permissions/bulk-assign', authenticateToken, assignPermissionsToRole);
+router.delete('/role-permissions/bulk-remove', authenticateToken, removePermissionsFromRole);
 
 module.exports = router;
