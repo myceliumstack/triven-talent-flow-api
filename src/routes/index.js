@@ -19,6 +19,8 @@ const jobPostingAssignmentRoutes = require('./job-posting-assignment.routes');
 const entityRoutes = require('./entity.routes');
 const rbacManagementRoutes = require('./rbac-management.routes');
 const userReportingRoutes = require('./user-reporting.routes');
+const userFilterRoutes = require('./user-filter.routes');
+const jobCandidateAssignmentRoutes = require('./job-candidate-assignment.routes');
 
 // Mount all routes
 router.use('/auth', authRoutes);
@@ -37,4 +39,6 @@ router.use('/job-posting-assignments', jobPostingAssignmentRoutes);
 router.use('/entities', entityRoutes);
 router.use('/rbac', rbacManagementRoutes);
 router.use('/user-reporting', userReportingRoutes);
+router.use('/user-filters', userFilterRoutes);
+router.use('/job-candidate-assignments', jobCandidateAssignmentRoutes);
 module.exports = router;

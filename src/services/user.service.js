@@ -543,6 +543,140 @@ const removeRoleFromUser = async (userId, roleId) => {
 };
 
 /**
+ * Update user role assignment (PATCH)
+ * @param {string} userId - User ID
+ * @param {string} roleId - Current role ID
+ * @param {string} newRoleId - New role ID
+ * @returns {Promise<Object>} Updated user role
+ */
+const updateUserRole = async (userId, roleId, newRoleId) => {
+  // Check if user exists
+  const user = await prisma.user.findUnique({
+    where: { id: userId }
+  });
+  
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Check if new role exists
+  const newRole = await prisma.role.findUnique({
+    where: { id: newRoleId }
+  });
+  
+  if (!newRole) {
+    throw new Error('Role not found');
+  }
+
+  // Check if current assignment exists
+  const currentAssignment = await prisma.userRole.findFirst({
+    where: {
+      userId: userId,
+      roleId: roleId
+    }
+  });
+
+  if (!currentAssignment) {
+    throw new Error('User role assignment not found');
+  }
+
+  // Check if user already has the new role
+  const existingNewRole = await prisma.userRole.findFirst({
+    where: {
+      userId: userId,
+      roleId: newRoleId
+    }
+  });
+
+  if (existingNewRole) {
+    throw new Error('User already has this role');
+  }
+
+  // Update the role assignment
+  const updatedUserRole = await prisma.userRole.update({
+    where: { id: currentAssignment.id },
+    data: { roleId: newRoleId },
+    include: {
+      role: {
+        include: {
+          rolePermissions: {
+            include: {
+              permission: true
+            }
+          }
+        }
+      }
+    }
+  });
+
+  return updatedUserRole;
+};
+
+/**
+ * Replace all user roles (PUT)
+ * @param {string} userId - User ID
+ * @param {Array<string>} roleIds - Array of role IDs
+ * @returns {Promise<Object>} Updated user roles
+ */
+const replaceUserRoles = async (userId, roleIds) => {
+  // Check if user exists
+  const user = await prisma.user.findUnique({
+    where: { id: userId }
+  });
+  
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Check if all roles exist
+  const roles = await prisma.role.findMany({
+    where: { id: { in: roleIds } }
+  });
+
+  if (roles.length !== roleIds.length) {
+    const foundRoleIds = roles.map(role => role.id);
+    const notFoundIds = roleIds.filter(id => !foundRoleIds.includes(id));
+    throw new Error(`Roles not found: ${notFoundIds.join(', ')}`);
+  }
+
+  // Replace all user roles in a transaction
+  const result = await prisma.$transaction(async (tx) => {
+    // Remove all existing roles
+    await tx.userRole.deleteMany({
+      where: { userId: userId }
+    });
+
+    // Add new roles
+    const newUserRoles = await tx.userRole.createMany({
+      data: roleIds.map(roleId => ({
+        userId: userId,
+        roleId: roleId
+      }))
+    });
+
+    // Return the new assignments with full role details
+    const userRoles = await tx.userRole.findMany({
+      where: { userId: userId },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return userRoles;
+  });
+
+  return result;
+};
+
+/**
  * Get user's roles and permissions
  * @param {string} userId - User ID
  * @returns {Promise<Object>} User with roles and permissions
@@ -826,6 +960,227 @@ const deleteRole = async (roleId) => {
   return { message: 'Role deleted successfully' };
 };
 
+/**
+ * Get all unique departments with their roles
+ * @returns {Promise<Object>} Departments with roles
+ */
+const getDepartments = async () => {
+  try {
+    // Get all roles grouped by department
+    const rolesByDepartment = await prisma.role.groupBy({
+      by: ['department'],
+      where: {
+        department: {
+          not: null
+        },
+        isActive: true
+      },
+      _count: {
+        id: true
+      }
+    });
+
+    // Get detailed role information for each department
+    const departmentsWithRoles = await Promise.all(
+      rolesByDepartment.map(async (dept) => {
+        const roles = await prisma.role.findMany({
+          where: {
+            department: dept.department,
+            isActive: true
+          },
+          select: {
+            id: true,
+            name: true,
+            description: true
+          },
+          orderBy: {
+            name: 'asc'
+          }
+        });
+
+        return {
+          department: dept.department,
+          roleCount: dept._count.id,
+          roles: roles
+        };
+      })
+    );
+
+    // Sort departments alphabetically
+    departmentsWithRoles.sort((a, b) => a.department.localeCompare(b.department));
+
+    return {
+      departments: departmentsWithRoles,
+      totalDepartments: departmentsWithRoles.length,
+      totalRoles: departmentsWithRoles.reduce((sum, dept) => sum + dept.roleCount, 0)
+    };
+  } catch (error) {
+    console.error('Error in getDepartments:', error);
+    throw new Error('Failed to fetch departments');
+  }
+};
+
+/**
+ * Get all managers for a given role ID based on hierarchy
+ * @param {string} roleId - The role ID to find managers for
+ * @returns {Promise<Object>} Managers for the role
+ */
+const getManagersByRole = async (roleId) => {
+  try {
+    // First, get the role details to understand its hierarchy
+    const role = await prisma.role.findUnique({
+      where: { id: roleId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        hierarchy: true,
+        department: true,
+        parentId: true,
+        parent: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            hierarchy: true
+          }
+        }
+      }
+    });
+
+    if (!role) {
+      throw new Error('Role not found');
+    }
+
+    // Find only the immediate manager role (next level up in hierarchy)
+    // This finds the role with the highest hierarchy number that is still lower than the requested role
+    const immediateManagerRole = await prisma.role.findFirst({
+      where: {
+        department: role.department,
+        hierarchy: {
+          lt: role.hierarchy // Lower hierarchy number means higher authority
+        },
+        isActive: true
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        hierarchy: true
+      },
+      orderBy: {
+        hierarchy: 'desc' // Get the role with the highest hierarchy number (closest to requested role)
+      }
+    });
+
+    // If no immediate manager found, return empty result
+    if (!immediateManagerRole) {
+      return {
+        requestedRole: {
+          id: role.id,
+          name: role.name,
+          description: role.description,
+          hierarchy: role.hierarchy,
+          department: role.department
+        },
+        managerRoles: [],
+        totalManagerRoles: 0,
+        totalManagers: 0
+      };
+    }
+
+    const managerRoles = [immediateManagerRole];
+
+    // Get all users who have these manager roles
+    const managers = await prisma.user.findMany({
+      where: {
+        userRoles: {
+          some: {
+            roleId: {
+              in: managerRoles.map(mr => mr.id)
+            }
+          }
+        },
+        isActive: true
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        isActive: true,
+        entity: {
+          select: {
+            id: true,
+            name: true,
+            code: true
+          }
+        },
+        userRoles: {
+          where: {
+            roleId: {
+              in: managerRoles.map(mr => mr.id)
+            }
+          },
+          include: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                hierarchy: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        firstName: 'asc'
+      }
+    });
+
+    // Group managers by their roles for better organization
+    const managersByRole = managerRoles.map(managerRole => {
+      const usersWithThisRole = managers.filter(user => 
+        user.userRoles.some(ur => ur.roleId === managerRole.id)
+      );
+      
+      return {
+        role: {
+          id: managerRole.id,
+          name: managerRole.name,
+          description: managerRole.description,
+          hierarchy: managerRole.hierarchy
+        },
+        managers: usersWithThisRole.map(user => ({
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          isActive: user.isActive,
+          entity: user.entity
+        }))
+      };
+    });
+
+    return {
+      requestedRole: {
+        id: role.id,
+        name: role.name,
+        description: role.description,
+        hierarchy: role.hierarchy,
+        department: role.department
+      },
+      managerRoles: managersByRole,
+      totalManagerRoles: managerRoles.length,
+      totalManagers: managers.length
+    };
+  } catch (error) {
+    console.error('Error in getManagersByRole:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -838,10 +1193,14 @@ module.exports = {
   searchUsers,
   assignRoleToUser,
   removeRoleFromUser,
+  updateUserRole,
+  replaceUserRoles,
   getUserRolesAndPermissions,
   getAllRolesWithPermissions,
   getAllPermissions,
   createRole,
   updateRole,
-  deleteRole
+  deleteRole,
+  getDepartments,
+  getManagersByRole
 };

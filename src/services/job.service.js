@@ -54,7 +54,7 @@ const createJob = async (data) => {
           relocationDetails: data.relocationDetails,
           warrantyType: data.warrantyType,
           warrantyPeriodDays: data.warrantyPeriodDays,
-          skills: data.skills || null,
+          skillsMatrix: data.skills || null,
           booleanSearch: data.booleanSearch,
           tags: data.tags || [],
           companyId: data.companyId,
@@ -344,7 +344,7 @@ const getJobByCode = async (jobCode) => {
             email: true
           }
         },
-        activities: {
+        jobActivities: {
           orderBy: { createdAt: 'desc' },
           take: 10,
           include: {
@@ -357,17 +357,15 @@ const getJobByCode = async (jobCode) => {
             }
           }
         },
-        candidates: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            currentStage: {
+        jobCandidateAssignments: {
+          take: 10,
+          include: {
+            candidate: {
               select: {
                 id: true,
-                name: true,
-                slug: true
+                firstName: true,
+                lastName: true,
+                email: true
               }
             }
           }

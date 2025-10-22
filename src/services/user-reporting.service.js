@@ -153,9 +153,297 @@ const getOrganizationalHierarchy = async (userId) => {
   }
 };
 
+/**
+ * Assign a manager to a user
+ * @param {string} userId - User's ID
+ * @param {string} managerId - Manager's user ID
+ * @returns {Promise<Object>} Manager assignment result
+ */
+const assignManagerToUser = async (userId, managerId) => {
+  try {
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, firstName: true, lastName: true }
+    });
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Check if manager exists
+    const manager = await prisma.user.findUnique({
+      where: { id: managerId },
+      select: { id: true, email: true, firstName: true, lastName: true }
+    });
+    
+    if (!manager) {
+      throw new Error('Manager not found');
+    }
+
+    // Check if user is trying to assign themselves as their own manager
+    if (userId === managerId) {
+      throw new Error('User cannot be their own manager');
+    }
+
+    // Check if relationship already exists and is active
+    const existingRelationship = await prisma.userReporting.findFirst({
+      where: {
+        userId: userId,
+        managerId: managerId,
+        isActive: true
+      }
+    });
+
+    if (existingRelationship) {
+      throw new Error('Manager relationship already exists');
+    }
+
+    // Deactivate any existing manager relationships for this user
+    await prisma.userReporting.updateMany({
+      where: {
+        userId: userId,
+        isActive: true
+      },
+      data: {
+        isActive: false
+      }
+    });
+
+    // Create new manager relationship
+    const userReporting = await prisma.userReporting.create({
+      data: {
+        userId: userId,
+        managerId: managerId,
+        isActive: true
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true
+          }
+        },
+        manager: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
+    });
+
+    return {
+      id: userReporting.id,
+      user: userReporting.user,
+      manager: userReporting.manager,
+      assignedAt: userReporting.createdAt,
+      isActive: userReporting.isActive
+    };
+  } catch (error) {
+    console.error('Error assigning manager to user:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update user manager assignment (PATCH)
+ * @param {string} userId - User's ID
+ * @param {string} newManagerId - New manager's user ID
+ * @returns {Promise<Object>} Updated manager assignment
+ */
+const updateUserManager = async (userId, newManagerId) => {
+  try {
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, firstName: true, lastName: true }
+    });
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Check if new manager exists
+    const newManager = await prisma.user.findUnique({
+      where: { id: newManagerId },
+      select: { id: true, email: true, firstName: true, lastName: true }
+    });
+    
+    if (!newManager) {
+      throw new Error('Manager not found');
+    }
+
+    // Check if user is trying to assign themselves as their own manager
+    if (userId === newManagerId) {
+      throw new Error('User cannot be their own manager');
+    }
+
+    // Check if user has an existing manager relationship
+    const existingRelationship = await prisma.userReporting.findFirst({
+      where: {
+        userId: userId,
+        isActive: true
+      }
+    });
+
+    if (!existingRelationship) {
+      throw new Error('User does not have an existing manager relationship');
+    }
+
+    // Check if the new manager relationship already exists
+    const newRelationshipExists = await prisma.userReporting.findFirst({
+      where: {
+        userId: userId,
+        managerId: newManagerId,
+        isActive: true
+      }
+    });
+
+    if (newRelationshipExists) {
+      throw new Error('User already has this manager');
+    }
+
+    // Update the manager relationship
+    const updatedUserReporting = await prisma.userReporting.update({
+      where: { id: existingRelationship.id },
+      data: {
+        managerId: newManagerId,
+        isActive: true
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true
+          }
+        },
+        manager: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
+    });
+
+    return {
+      id: updatedUserReporting.id,
+      user: updatedUserReporting.user,
+      manager: updatedUserReporting.manager,
+      assignedAt: updatedUserReporting.createdAt,
+      updatedAt: updatedUserReporting.updatedAt,
+      isActive: updatedUserReporting.isActive
+    };
+  } catch (error) {
+    console.error('Error updating user manager:', error);
+    throw error;
+  }
+};
+
+/**
+ * Replace user manager assignment (PUT)
+ * @param {string} userId - User's ID
+ * @param {string} managerId - Manager's user ID
+ * @returns {Promise<Object>} Manager assignment result
+ */
+const replaceUserManager = async (userId, managerId) => {
+  try {
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, firstName: true, lastName: true }
+    });
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Check if manager exists
+    const manager = await prisma.user.findUnique({
+      where: { id: managerId },
+      select: { id: true, email: true, firstName: true, lastName: true }
+    });
+    
+    if (!manager) {
+      throw new Error('Manager not found');
+    }
+
+    // Check if user is trying to assign themselves as their own manager
+    if (userId === managerId) {
+      throw new Error('User cannot be their own manager');
+    }
+
+    // Replace manager relationship in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Deactivate all existing manager relationships for this user
+      await tx.userReporting.updateMany({
+        where: {
+          userId: userId,
+          isActive: true
+        },
+        data: {
+          isActive: false
+        }
+      });
+
+      // Create new manager relationship
+      const userReporting = await tx.userReporting.create({
+        data: {
+          userId: userId,
+          managerId: managerId,
+          isActive: true
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true
+            }
+          },
+          manager: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true
+            }
+          }
+        }
+      });
+
+      return userReporting;
+    });
+
+    return {
+      id: result.id,
+      user: result.user,
+      manager: result.manager,
+      assignedAt: result.createdAt,
+      isActive: result.isActive
+    };
+  } catch (error) {
+    console.error('Error replacing user manager:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   getDirectReportees,
   getAllReportees,
   getManager,
-  getOrganizationalHierarchy
+  getOrganizationalHierarchy,
+  assignManagerToUser,
+  updateUserManager,
+  replaceUserManager
 };

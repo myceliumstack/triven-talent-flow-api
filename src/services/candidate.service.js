@@ -6,8 +6,6 @@ const createCandidate = async (data) => {
   try {
     const candidate = await prisma.candidate.create({
       data: {
-        jobId: data.jobId,
-        currentStageId: data.currentStageId,
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
@@ -22,32 +20,12 @@ const createCandidate = async (data) => {
         employmentType: data.employmentType,
         certifications: data.certifications || [],
         resumeUrl: data.resumeUrl,
-        linkedInUrl: data.linkedInUrl,
+        linkedinUrl: data.linkedinUrl,
         createdById: data.createdById,
         modifiedById: data.modifiedById,
         isActive: data.isActive !== undefined ? data.isActive : true
       },
       include: {
-        job: {
-          select: {
-            id: true,
-            jobCode: true,
-            title: true,
-            company: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
-          }
-        },
-        currentStage: {
-          select: {
-            id: true,
-            name: true,
-            slug: true
-          }
-        },
         createdBy: {
           select: {
             id: true,
@@ -64,7 +42,25 @@ const createCandidate = async (data) => {
             email: true
           }
         },
-        education: true
+        education: true,
+        jobCandidateAssignments: {
+          include: {
+            job: {
+              select: {
+                id: true,
+                jobCode: true,
+                title: true
+              }
+            },
+            stage: {
+              select: {
+                id: true,
+                name: true,
+                slug: true
+              }
+            }
+          }
+        }
       }
     });
 
@@ -77,14 +73,6 @@ const createCandidate = async (data) => {
 const getAllCandidates = async (filters = {}) => {
   try {
     const where = {};
-    
-    if (filters.jobId) {
-      where.jobId = filters.jobId;
-    }
-    
-    if (filters.currentStageId) {
-      where.currentStageId = filters.currentStageId;
-    }
     
     if (filters.isActive !== undefined) {
       where.isActive = filters.isActive;
@@ -125,32 +113,38 @@ const getAllCandidates = async (filters = {}) => {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          job: {
-            select: {
-              id: true,
-              jobCode: true,
-              title: true,
-              company: {
-                select: {
-                  id: true,
-                  name: true
-                }
-              }
-            }
-          },
-          currentStage: {
-            select: {
-              id: true,
-              name: true,
-              slug: true
-            }
-          },
           createdBy: {
             select: {
               id: true,
               firstName: true,
               lastName: true,
               email: true
+            }
+          },
+          jobCandidateAssignments: {
+            take: 5,
+            orderBy: { assignedDate: 'desc' },
+            include: {
+              job: {
+                select: {
+                  id: true,
+                  jobCode: true,
+                  title: true,
+                  company: {
+                    select: {
+                      id: true,
+                      name: true
+                    }
+                  }
+                }
+              },
+              stage: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true
+                }
+              }
             }
           }
         }
@@ -177,28 +171,6 @@ const getCandidateById = async (id) => {
     const candidate = await prisma.candidate.findUnique({
       where: { id },
       include: {
-        job: {
-          select: {
-            id: true,
-            jobCode: true,
-            title: true,
-            company: {
-              select: {
-                id: true,
-                name: true,
-                industry: true,
-                location: true
-              }
-            }
-          }
-        },
-        currentStage: {
-          select: {
-            id: true,
-            name: true,
-            slug: true
-          }
-        },
         createdBy: {
           select: {
             id: true,
@@ -218,11 +190,45 @@ const getCandidateById = async (id) => {
         education: {
           orderBy: { graduationYear: 'desc' }
         },
-        activities: {
+        candidateActivities: {
           orderBy: { createdAt: 'desc' },
           take: 20,
           include: {
             createdBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true
+              }
+            }
+          }
+        },
+        jobCandidateAssignments: {
+          orderBy: { assignedDate: 'desc' },
+          include: {
+            job: {
+              select: {
+                id: true,
+                jobCode: true,
+                title: true,
+                company: {
+                  select: {
+                    id: true,
+                    name: true,
+                    industry: true,
+                    location: true
+                  }
+                }
+              }
+            },
+            stage: {
+              select: {
+                id: true,
+                name: true,
+                slug: true
+              }
+            },
+            assignedBy: {
               select: {
                 id: true,
                 firstName: true,
@@ -257,8 +263,6 @@ const updateCandidate = async (id, data) => {
     const candidate = await prisma.candidate.update({
       where: { id },
       data: {
-        jobId: data.jobId,
-        currentStageId: data.currentStageId,
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
@@ -273,31 +277,11 @@ const updateCandidate = async (id, data) => {
         employmentType: data.employmentType,
         certifications: data.certifications,
         resumeUrl: data.resumeUrl,
-        linkedInUrl: data.linkedInUrl,
+        linkedinUrl: data.linkedinUrl,
         modifiedById: data.modifiedById,
         isActive: data.isActive
       },
       include: {
-        job: {
-          select: {
-            id: true,
-            jobCode: true,
-            title: true,
-            company: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
-          }
-        },
-        currentStage: {
-          select: {
-            id: true,
-            name: true,
-            slug: true
-          }
-        },
         createdBy: {
           select: {
             id: true,
@@ -314,7 +298,25 @@ const updateCandidate = async (id, data) => {
             email: true
           }
         },
-        education: true
+        education: true,
+        jobCandidateAssignments: {
+          include: {
+            job: {
+              select: {
+                id: true,
+                jobCode: true,
+                title: true
+              }
+            },
+            stage: {
+              select: {
+                id: true,
+                name: true,
+                slug: true
+              }
+            }
+          }
+        }
       }
     });
 
@@ -329,8 +331,9 @@ const deleteCandidate = async (id) => {
     const existingCandidate = await prisma.candidate.findUnique({
       where: { id },
       include: {
-        activities: true,
-        education: true
+        candidateActivities: true,
+        education: true,
+        jobCandidateAssignments: true
       }
     });
 

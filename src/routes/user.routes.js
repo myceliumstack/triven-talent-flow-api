@@ -15,12 +15,16 @@ const {
   updateCurrentUserProfile,
   assignRoleToUser,
   removeRoleFromUser,
+  updateUserRole,
+  replaceUserRoles,
   getUserRolesAndPermissions,
   getAllRolesWithPermissions,
   getAllPermissions,
   createRole,
   updateRole,
-  deleteRole
+  deleteRole,
+  getDepartments,
+  getManagersByRole
 } = require('../controllers/user.controller');
 
 // Test route
@@ -33,6 +37,9 @@ router.get('/profile', authenticateToken, getCurrentUserProfile);
 router.put('/profile', authenticateToken, updateCurrentUserProfile);
 
 // User management routes
+router.get('/departments', authenticateToken, getDepartments);
+//API that fetches all managers for a given role ID based on hierarchy.
+router.get('/managers/:roleId', authenticateToken, getManagersByRole);
 router.get('/', authenticateToken, getAllUsers);
 router.get('/search', authenticateToken, searchUsers);
 router.get('/stats', authenticateToken, getUserStats);
@@ -46,6 +53,8 @@ router.patch('/:id/toggle-status', authenticateToken, toggleUserStatus);
 // User role management routes
 router.post('/:userId/roles', authenticateToken, assignRoleToUser);
 router.delete('/:userId/roles/:roleId', authenticateToken, removeRoleFromUser);
+router.patch('/:userId/roles/:roleId', authenticateToken, updateUserRole);
+router.put('/:userId/roles', authenticateToken, replaceUserRoles);
 
 // Role management routes
 router.get('/roles/all', authenticateToken, getAllRolesWithPermissions);

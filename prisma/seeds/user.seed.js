@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 const usersWithRoles = [
   // Admin Users (Level 0)
   {
-    email: 'admin@trivens.com',
+    email: 'admin@privens.com',
     firstName: 'System',
     lastName: 'Administrator',
     password: 'Admin@123',

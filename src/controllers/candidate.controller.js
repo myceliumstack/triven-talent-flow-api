@@ -3,8 +3,6 @@ const CandidateService = require('../services/candidate.service');
 const createCandidate = async (req, res) => {
   try {
     const {
-      jobId,
-      currentStageId,
       firstName,
       lastName,
       email,
@@ -19,19 +17,17 @@ const createCandidate = async (req, res) => {
       employmentType,
       certifications,
       resumeUrl,
-      linkedInUrl
+      linkedinUrl
     } = req.body;
 
-    if (!jobId || !currentStageId || !firstName || !lastName) {
+    if (!firstName || !lastName) {
       return res.status(400).json({
         success: false,
-        message: 'JobId, currentStageId, firstName, and lastName are required'
+        message: 'firstName and lastName are required'
       });
     }
 
     const candidate = await CandidateService.createCandidate({
-      jobId,
-      currentStageId,
       firstName,
       lastName,
       email,
@@ -46,7 +42,7 @@ const createCandidate = async (req, res) => {
       employmentType,
       certifications,
       resumeUrl,
-      linkedInUrl,
+      linkedinUrl,
       createdById: req.user.userId
     });
 
@@ -66,8 +62,6 @@ const createCandidate = async (req, res) => {
 const getAllCandidates = async (req, res) => {
   try {
     const {
-      jobId,
-      currentStageId,
       isActive,
       isApplicant,
       search,
@@ -78,8 +72,6 @@ const getAllCandidates = async (req, res) => {
     } = req.query;
 
     const filters = {};
-    if (jobId) filters.jobId = jobId;
-    if (currentStageId) filters.currentStageId = currentStageId;
     if (isActive !== undefined) filters.isActive = isActive === 'true';
     if (isApplicant !== undefined) filters.isApplicant = isApplicant === 'true';
     if (search) filters.search = search;

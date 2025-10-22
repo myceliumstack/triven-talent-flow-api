@@ -34,4 +34,25 @@ router.get('/:userId/manager', UserReportingController.getManager);
  */
 router.get('/:userId/hierarchy', UserReportingController.getOrganizationalHierarchy);
 
+/**
+ * @route POST /api/user-reporting/:userId/manager
+ * @desc Assign a manager to a user
+ * @access Private
+ */
+router.post('/:userId/manager', UserReportingController.assignManager);
+
+/**
+ * @route PATCH /api/user-reporting/:userId/manager
+ * @desc Update user manager assignment
+ * @access Private
+ */
+router.patch('/:userId/manager', UserReportingController.updateUserManager);
+
+/**
+ * @route PUT /api/user-reporting/:userId/manager
+ * @desc Replace user manager assignment
+ * @access Private
+ */
+router.put('/:userId/manager', UserReportingController.replaceUserManager);
+
 module.exports = router;

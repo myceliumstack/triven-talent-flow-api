@@ -1,5 +1,6 @@
 // src/controllers/user.controller.js
 const userService = require('../services/user.service');
+const userReportingService = require('../services/user-reporting.service');
 
 /**
  * Get all users with pagination and filters
@@ -417,6 +418,93 @@ const removeRoleFromUser = async (req, res) => {
 };
 
 /**
+ * Update user role assignment (PATCH)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const updateUserRole = async (req, res) => {
+  try {
+    const { userId, roleId } = req.params;
+    const { newRoleId } = req.body;
+
+    if (!newRoleId) {
+      return res.status(400).json({
+        success: false,
+        message: 'New role ID is required'
+      });
+    }
+
+    const result = await userService.updateUserRole(userId, roleId, newRoleId);
+
+    res.json({
+      success: true,
+      message: 'User role updated successfully',
+      data: result
+    });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    if (error.message === 'User not found' || error.message === 'Role not found' || error.message === 'User role assignment not found') {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    } else if (error.message === 'User already has this role') {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update user role',
+        error: error.message
+      });
+    }
+  }
+};
+
+/**
+ * Replace all user roles (PUT)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const replaceUserRoles = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { roleIds } = req.body;
+
+    if (!roleIds || !Array.isArray(roleIds)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Role IDs array is required'
+      });
+    }
+
+    const result = await userService.replaceUserRoles(userId, roleIds);
+
+    res.json({
+      success: true,
+      message: 'User roles replaced successfully',
+      data: result
+    });
+  } catch (error) {
+    console.error('Error replacing user roles:', error);
+    if (error.message === 'User not found' || error.message === 'Role not found') {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to replace user roles',
+        error: error.message
+      });
+    }
+  }
+};
+
+/**
  * Get user's roles and permissions
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -615,6 +703,108 @@ const deleteRole = async (req, res) => {
   }
 };
 
+/**
+ * Get all unique departments with their roles
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getDepartments = async (req, res) => {
+  try {
+    const result = await userService.getDepartments();
+    res.json({
+      success: true,
+      message: 'Departments retrieved successfully',
+      data: result
+    });
+  } catch (error) {
+    console.error('Error getting departments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get departments',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get all managers for a given role ID based on hierarchy
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getManagersByRole = async (req, res) => {
+  try {
+    const { roleId } = req.params;
+    if (!roleId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Role ID is required'
+      });
+    }
+    const result = await userService.getManagersByRole(roleId);
+    res.json({
+      success: true,
+      message: 'Managers retrieved successfully',
+      data: result
+    });
+  } catch (error) {
+    console.error('Error getting managers by role:', error);
+    if (error.message === 'Role not found') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get managers',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get subordinates (direct reportees) for a given user ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getSubordinates = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if user exists
+    const user = await userService.getUserById(id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    const subordinates = await userReportingService.getDirectReportees(id);
+    
+    res.json({
+      success: true,
+      message: 'Subordinates retrieved successfully',
+      data: subordinates,
+      count: subordinates.length
+    });
+  } catch (error) {
+    console.error('Error getting subordinates:', error);
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get subordinates',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -628,10 +818,15 @@ module.exports = {
   updateCurrentUserProfile,
   assignRoleToUser,
   removeRoleFromUser,
+  updateUserRole,
+  replaceUserRoles,
   getUserRolesAndPermissions,
   getAllRolesWithPermissions,
   getAllPermissions,
   createRole,
   updateRole,
-  deleteRole
+  deleteRole,
+  getDepartments,
+  getManagersByRole,
+  getSubordinates
 };
