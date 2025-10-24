@@ -597,6 +597,230 @@ const getJobPostingAssignmentStatus = async (jobPostingIds) => {
   }
 };
 
+/**
+ * Get job posting assignments by status ID and user ID
+ * @param {string} statusId - Status ID
+ * @param {string} userId - User ID to filter assignments
+ * @param {Object} options - Query options (pagination, sorting)
+ * @returns {Promise<Object>} Assignments with pagination
+ */
+const getJobPostingAssignmentsByStatus = async (statusId, userId, options = {}) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'assignedAt',
+      sortOrder = 'desc'
+    } = options;
+
+    const skip = (page - 1) * limit;
+
+    // Build orderBy clause
+    const orderBy = {};
+    orderBy[sortBy] = sortOrder;
+
+    // Build where clause to filter by both statusId and userId
+    const where = {
+      statusId,
+      assignedUserId: userId
+    };
+
+    const [assignments, total] = await Promise.all([
+      prisma.jobPostingAssignment.findMany({
+        where,
+        include: {
+          jobPosting: {
+            include: {
+              company: true
+            }
+          },
+          entity: {
+            select: {
+              id: true,
+              name: true,
+              type: true
+            }
+          },
+          status: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
+          assignedBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          assignedUser: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          }
+        },
+        skip,
+        take: limit,
+        orderBy
+      }),
+      prisma.jobPostingAssignment.count({ 
+        where 
+      })
+    ]);
+
+    return {
+      assignments,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  } catch (error) {
+    console.error('Error in getJobPostingAssignmentsByStatus:', error);
+    throw new Error('Failed to fetch job posting assignments by status');
+  }
+};
+
+/**
+ * Search job posting assignments for a specific user
+ * @param {string} query - Search query
+ * @param {string} userId - User ID to filter assignments
+ * @returns {Promise<Array>} Matching job posting assignments
+ */
+const searchJobPostingAssignments = async (query, userId) => {
+  try {
+    if (!query || query.length < 2) {
+      return [];
+    }
+
+    const assignments = await prisma.jobPostingAssignment.findMany({
+      where: {
+        assignedUserId: userId,
+        OR: [
+          { 
+            jobPosting: { 
+              title: { contains: query, mode: 'insensitive' } 
+            } 
+          },
+          { 
+            jobPosting: { 
+              description: { contains: query, mode: 'insensitive' } 
+            } 
+          },
+          { 
+            jobPosting: { 
+              location: { contains: query, mode: 'insensitive' } 
+            } 
+          },
+          { 
+            jobPosting: { 
+              company: { 
+                name: { contains: query, mode: 'insensitive' } 
+              } 
+            } 
+          },
+          { 
+            entity: { 
+              name: { contains: query, mode: 'insensitive' } 
+            } 
+          },
+          { 
+            status: { 
+              name: { contains: query, mode: 'insensitive' } 
+            } 
+          },
+          { 
+            assignedUser: { 
+              firstName: { contains: query, mode: 'insensitive' } 
+            } 
+          },
+          { 
+            assignedUser: { 
+              lastName: { contains: query, mode: 'insensitive' } 
+            } 
+          },
+          { 
+            assignedUser: { 
+              email: { contains: query, mode: 'insensitive' } 
+            } 
+          },
+          { 
+            assignedBy: { 
+              firstName: { contains: query, mode: 'insensitive' } 
+            } 
+          },
+          { 
+            assignedBy: { 
+              lastName: { contains: query, mode: 'insensitive' } 
+            } 
+          },
+          { 
+            notes: { contains: query, mode: 'insensitive' } 
+          }
+        ]
+      },
+      include: {
+        jobPosting: {
+          select: {
+            id: true,
+            title: true,
+            location: true,
+            company: {
+              select: { 
+                id: true,
+                name: true 
+              }
+            }
+          }
+        },
+        entity: {
+          select: {
+            id: true,
+            name: true,
+            type: true
+          }
+        },
+        status: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        assignedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        assignedUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      },
+      take: 20,
+      orderBy: { assignedAt: 'desc' }
+    });
+
+    return assignments;
+  } catch (error) {
+    console.error('Error in searchJobPostingAssignments:', error);
+    throw new Error('Failed to search job posting assignments');
+  }
+};
+
 module.exports = {
   getJobPostingAssignments,
   createJobPostingAssignment,
@@ -605,5 +829,7 @@ module.exports = {
   bulkAssignJobPostingsToEntities,
   getEntitiesForAssignment,
   getJobPostingStatusesForAssignment,
-  getJobPostingAssignmentStatus
+  getJobPostingAssignmentStatus,
+  getJobPostingAssignmentsByStatus,
+  searchJobPostingAssignments
 };

@@ -372,6 +372,103 @@ const getJobPostingAssignmentStatus = async (req, res) => {
   }
 };
 
+/**
+ * Get job posting assignments by status ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getJobPostingAssignmentsByStatus = async (req, res) => {
+  try {
+    const { statusId, userId } = req.params;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'assignedAt',
+      sortOrder = 'desc'
+    } = req.query;
+
+    if (!statusId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status ID is required'
+      });
+    }
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    const result = await JobPostingAssignmentService.getJobPostingAssignmentsByStatus(
+      statusId,
+      userId,
+      {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        sortBy,
+        sortOrder
+      }
+    );
+
+    res.json({
+      success: true,
+      message: 'Job posting assignments retrieved successfully',
+      data: result.assignments,
+      pagination: result.pagination
+    });
+  } catch (error) {
+    console.error('Error getting job posting assignments by status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get job posting assignments by status',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Search job posting assignments
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const searchJobPostingAssignments = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { q: query } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query is required'
+      });
+    }
+
+    const assignments = await JobPostingAssignmentService.searchJobPostingAssignments(query, userId);
+
+    res.json({
+      success: true,
+      message: 'Job posting assignments search completed',
+      data: assignments
+    });
+  } catch (error) {
+    console.error('Error searching job posting assignments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search job posting assignments',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getJobPostingAssignments,
   createJobPostingAssignment,
@@ -381,5 +478,7 @@ module.exports = {
   bulkAssignJobPostingsToEntities,
   getEntitiesForAssignment,
   getJobPostingStatusesForAssignment,
-  getJobPostingAssignmentStatus
+  getJobPostingAssignmentStatus,
+  getJobPostingAssignmentsByStatus,
+  searchJobPostingAssignments
 };

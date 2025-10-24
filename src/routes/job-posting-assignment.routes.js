@@ -14,7 +14,9 @@ const {
   getEntitiesForAssignment,
   getJobPostingStatusesForAssignment,
   getJobPostingAssignmentStatus,
-  updateAssignedUser
+  updateAssignedUser,
+  getJobPostingAssignmentsByStatus,
+  searchJobPostingAssignments
 } = require('../controllers/job-posting-assignment.controller');
 
 // Test route
@@ -24,6 +26,8 @@ router.get('/test', (req, res) => {
 
 // Assignment CRUD operations
 router.get('/', authenticateToken, getJobPostingAssignments);
+router.get('/search/user/:userId', authenticateToken, searchJobPostingAssignments);
+router.get('/status/:statusId/user/:userId', authenticateToken, getJobPostingAssignmentsByStatus);
 router.post('/', authenticateToken, createJobPostingAssignment);
 router.put('/:id', authenticateToken, updateJobPostingAssignment);
 router.delete('/:id', authenticateToken, deleteJobPostingAssignment);
