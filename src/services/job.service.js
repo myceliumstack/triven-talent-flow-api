@@ -126,10 +126,6 @@ const getAllJobs = async (filters = {}) => {
       where.companyId = filters.companyId;
     }
     
-    if (filters.statusId) {
-      where.statusId = filters.statusId;
-    }
-    
     if (filters.jobPostingId) {
       where.jobPostingId = filters.jobPostingId;
     }
@@ -157,6 +153,10 @@ const getAllJobs = async (filters = {}) => {
       where.remoteType = filters.remoteType;
     }
 
+    if (filters.createdById) {
+      where.createdById = filters.createdById;
+    }
+
     const page = parseInt(filters.page) || 1;
     const limit = parseInt(filters.limit) || 10;
     const skip = (page - 1) * limit;
@@ -176,11 +176,15 @@ const getAllJobs = async (filters = {}) => {
               location: true
             }
           },
-          status: {
-            select: {
-              id: true,
-              name: true,
-              slug: true
+          jobAssignments: {
+            include: {
+              status: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true
+                }
+              }
             }
           },
           createdBy: {
@@ -321,11 +325,15 @@ const getJobByCode = async (jobCode) => {
             salaryRange: true
           }
         },
-        status: {
-          select: {
-            id: true,
-            name: true,
-            slug: true
+        jobAssignments: {
+          include: {
+            status: {
+              select: {
+                id: true,
+                name: true,
+                slug: true
+              }
+            }
           }
         },
         createdBy: {

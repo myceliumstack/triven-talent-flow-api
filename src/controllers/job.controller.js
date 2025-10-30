@@ -87,6 +87,7 @@ const getAllJobs = async (req, res) => {
       search,
       location,
       remoteType,
+      createdById,
       page,
       limit
     } = req.query;
@@ -99,6 +100,7 @@ const getAllJobs = async (req, res) => {
     if (search) filters.search = search;
     if (location) filters.location = location;
     if (remoteType) filters.remoteType = remoteType;
+    if (createdById) filters.createdById = createdById;
     if (page) filters.page = page;
     if (limit) filters.limit = limit;
 
@@ -152,6 +154,33 @@ const getJobByCode = async (req, res) => {
   } catch (error) {
     const statusCode = error.message === 'Job not found' ? 404 : 500;
     res.status(statusCode).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+const getJobsByCreatedBy = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    const filters = {
+      createdById: userId,
+      page: parseInt(page),
+      limit: parseInt(limit)
+    };
+
+    const result = await JobService.getAllJobs(filters);
+
+    res.status(200).json({
+      success: true,
+      message: 'Jobs fetched successfully',
+      data: result.jobs,
+      pagination: result.pagination
+    });
+  } catch (error) {
+    res.status(500).json({
       success: false,
       message: error.message
     });
@@ -263,6 +292,7 @@ module.exports = {
   getAllJobs,
   getJobById,
   getJobByCode,
+  getJobsByCreatedBy,
   updateJob,
   deleteJob
 };

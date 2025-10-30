@@ -55,6 +55,8 @@ model User {
   modifiedJobCandidateAssignments JobCandidateAssignment[] @relation("JobCandidateAssignmentModifiedBy")
   assignedJobPostingAssignments   JobPostingAssignment[] @relation("JobPostingAssignmentAssignedBy")
   assignedToJobPostingAssignments JobPostingAssignment[] @relation("JobPostingAssignmentAssignedTo")
+  assignedJobAssignments          JobAssignment[] @relation("JobAssignmentAssignedBy")
+  assignedToJobAssignments        JobAssignment[] @relation("JobAssignmentAssignedTo")
   
   @@index([email])
   @@index([firstName, lastName])
@@ -170,7 +172,7 @@ model UserReporting {
 }
 
 // ================================================================
-// ENTITY MODEL
+// ENTITY MODELe 
 // ================================================================
 
 model Entity {
@@ -383,7 +385,7 @@ model JobStatus {
   updatedAt DateTime @updatedAt @map("updated_at")
   
   // Relations
-  jobs Job[]
+  jobAssignments JobAssignment[]
   
   @@index([name])
   @@index([slug])
@@ -419,7 +421,6 @@ model Job {
   tags                  String[]
   companyId             String   @map("company_id")
   jobPostingId          String?  @map("job_posting_id")
-  statusId              String   @map("status_id")
   createdById           String   @map("created_by_id")
   modifiedById          String?  @map("modified_by_id")
   isActive              Boolean  @default(true) @map("is_active")
@@ -432,11 +433,11 @@ model Job {
   // Relations
   company                Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
   jobPosting             JobPosting?             @relation(fields: [jobPostingId], references: [id])
-  status                 JobStatus               @relation(fields: [statusId], references: [id])
   createdBy              User                    @relation("JobCreatedBy", fields: [createdById], references: [id])
   modifiedBy             User?                   @relation("JobModifiedBy", fields: [modifiedById], references: [id])
   jobActivities          JobActivity[]
   jobCandidateAssignments JobCandidateAssignment[]
+  jobAssignments         JobAssignment[]
   
   @@index([jobCode])
   @@index([title])
@@ -444,7 +445,6 @@ model Job {
   @@index([remoteType])
   @@index([companyId])
   @@index([jobPostingId])
-  @@index([statusId])
   @@index([createdById])
   @@index([isActive])
   @@index([tags])
@@ -615,6 +615,36 @@ model JobCandidateAssignment {
   @@index([lastActivityDate])
   @@index([isActive])
   @@map("job_candidate_assignments")
+}
+
+// ================================================================
+// JOB ASSIGNMENT MODEL
+// ================================================================
+
+model JobAssignment {
+  id            String   @id @default(cuid())
+  jobId         String   @map("job_id")
+  assignedUserId String  @map("assigned_user_id")
+  statusId      String   @map("status_id")
+  assignedById  String   @map("assigned_by_id")
+  priority      String?  @default("normal")
+  notes         String?
+  assignedAt    DateTime @default(now()) @map("assigned_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  job          Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  assignedUser User      @relation("JobAssignmentAssignedTo", fields: [assignedUserId], references: [id])
+  assignedBy   User      @relation("JobAssignmentAssignedBy", fields: [assignedById], references: [id])
+  status       JobStatus @relation(fields: [statusId], references: [id])
+  
+  @@index([jobId])
+  @@index([assignedUserId])
+  @@index([statusId])
+  @@index([assignedById])
+  @@index([assignedAt])
+  @@index([priority])
+  @@map("job_assignments")
 }
 
 // ================================================================

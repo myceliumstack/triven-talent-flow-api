@@ -15,6 +15,9 @@ router.get('/', JobController.getAllJobs);
 // Get job by job code
 router.get('/code/:jobCode', JobController.getJobByCode);
 
+// Get jobs by created by user ID
+router.get('/created-by/:userId', JobController.getJobsByCreatedBy);
+
 // Get job by ID
 router.get('/:id', JobController.getJobById);
 
