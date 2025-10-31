@@ -9,6 +9,7 @@ const {
   updateJobPosting,
   deleteJobPosting,
   getJobPostingsByCompanyId,
+  getJobPostingsByCreatedBy,
   getJobPostingsByCategory,
   getJobPostingsByStatus,
   getJobPostingsByValidation,
@@ -59,6 +60,9 @@ router.get('/experience/:experience', getJobPostingsByExperience);
 
 // GET /api/job-postings/company/:companyId - Get job postings by company ID
 router.get('/company/:companyId', getJobPostingsByCompanyId);
+
+// GET /api/job-postings/created-by/:userId - Get job postings by created by user ID
+router.get('/created-by/:userId', getJobPostingsByCreatedBy);
 
 // GET /api/job-postings/:id - Get job posting by ID
 router.get('/:id', getJobPostingById);

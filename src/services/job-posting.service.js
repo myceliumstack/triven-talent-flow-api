@@ -8,6 +8,9 @@ const jobPostingListIncludes = {
   },
   status: {
     select: { id: true, name: true }
+  },
+  createdByUser: {
+    select: { id: true, firstName: true, lastName: true, email: true }
   }
 };
 
@@ -293,6 +296,72 @@ const getJobPostingsByCompanyId = async (companyId) => {
 
     console.log('✅ JobPostingService: Found', jobPostings.length, 'job postings for company:', company.name);
     return jobPostings;
+};
+
+/**
+ * Get job postings by created by user ID
+ * @param {string} userId - User ID who created the job postings
+ * @param {Object} options - Pagination options
+ * @returns {Promise<Object>} Job postings with pagination
+ */
+const getJobPostingsByCreatedById = async (userId, options = {}) => {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      startDate,
+      endDate
+    } = options;
+
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where = { createdById: userId };
+    
+    // Add date range filter if provided
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        // Start of the day for startDate
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        where.createdAt.gte = start;
+      }
+      if (endDate) {
+        // End of the day for endDate
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+
+    // Build order by
+    const orderBy = {};
+    if (sortBy) {
+      orderBy[sortBy] = sortOrder;
+    }
+
+    const [jobPostings, total] = await Promise.all([
+      prisma.jobPosting.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+        include: jobPostingListIncludes
+      }),
+      prisma.jobPosting.count({ where })
+    ]);
+
+    return {
+      jobPostings,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
 };
 
 /**
@@ -1235,6 +1304,7 @@ module.exports = {
   deleteStatus,
   getAllJobPostings,
   getJobPostingsByCompanyId,
+  getJobPostingsByCreatedById,
   getJobPostingById,
   createJobPosting,
   bulkCreateJobPostings,

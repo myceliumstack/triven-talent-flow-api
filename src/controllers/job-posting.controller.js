@@ -117,8 +117,9 @@ const getJobPostingById = async (req, res) => {
    */
 const createJobPosting = async (req, res) => {
     try {
-    const jobPostingData = req.validatedData;
-      const createdById = req.user.userId;
+    const { createdById: bodyCreatedById, modifiedById, ...jobPostingData } = req.validatedData;
+      // Use createdById from body if provided, otherwise use authenticated user
+      const createdById = bodyCreatedById || req.user.userId;
 
     const jobPosting = await JobPostingService.createJobPosting(jobPostingData, createdById);
 
@@ -263,6 +264,47 @@ const getJobPostingsByCompanyId = async (req, res) => {
       }
 
       console.log('📍 Unexpected error, returning 500');
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  };
+
+  /**
+   * Get job postings by created by user ID
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+const getJobPostingsByCreatedBy = async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { 
+        page = 1, 
+        limit = 10, 
+        sortBy = 'createdAt', 
+        sortOrder = 'desc',
+        startDate,
+        endDate
+      } = req.query;
+
+      const result = await JobPostingService.getJobPostingsByCreatedById(userId, {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        sortBy,
+        sortOrder,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Job postings retrieved successfully',
+        data: result.jobPostings,
+        pagination: result.pagination
+      });
+    } catch (error) {
+      console.error('Error fetching job postings by created by:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error'
@@ -939,6 +981,7 @@ module.exports = {
   updateJobPosting,
   deleteJobPosting,
   getJobPostingsByCompanyId,
+  getJobPostingsByCreatedBy,
   getJobPostingsByCategory,
   getJobPostingsByStatus,
   getJobPostingsByValidation,

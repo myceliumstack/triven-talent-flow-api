@@ -72,8 +72,8 @@ const createJobPostingSchema = z.object({
   sourceUrl: z.string().url('Invalid source URL').optional().or(z.literal('')),
   timeZone: z.string().max(50, 'Time zone too long').optional(),
   additionalNotes: z.string().max(2000, 'Additional notes too long').optional(),
-  createdBy: z.string().min(1, 'Created by is required').max(255, 'Created by too long'),
-  modifiedBy: z.string().max(255, 'Modified by too long').optional(),
+  createdById: z.string().cuid('Invalid created by user ID').optional(),
+  modifiedById: z.string().cuid('Invalid modified by user ID').optional(),
   bdmAssigned: z.string().max(255, 'BDM assigned too long').optional(),
   statusId: z.string().cuid('Invalid status ID').optional(),
   validation: z.boolean().default(false)

@@ -308,8 +308,6 @@ model JobPosting {
   sourceUrl        String?  @map("source_url")
   timeZone         String?  @map("time_zone")
   additionalNotes  String?  @map("additional_notes")
-  createdBy        String   @map("created_by")
-  modifiedBy       String?  @map("modified_by")
   bdmAssigned      String?  @map("bdm_assigned")
   validation       Boolean  @default(false)
   statusId         String?  @map("status_id")
