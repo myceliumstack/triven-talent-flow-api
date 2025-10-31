@@ -120,6 +120,29 @@ const getAllJobs = async (req, res) => {
   }
 };
 
+const searchJobsByCode = async (req, res) => {
+  try {
+    const { jobCode } = req.params;
+    const { companyId, isActive, page, limit } = req.query;
+
+    const result = await JobService.searchJobsByCode(jobCode, {
+      companyId,
+      isActive: isActive !== undefined ? isActive === 'true' : undefined,
+      page,
+      limit
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Jobs fetched successfully',
+      data: result.jobs,
+      pagination: result.pagination
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 const getJobById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -292,6 +315,7 @@ module.exports = {
   getAllJobs,
   getJobById,
   getJobByCode,
+   searchJobsByCode,
   getJobsByCreatedBy,
   updateJob,
   deleteJob

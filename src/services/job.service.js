@@ -176,17 +176,6 @@ const getAllJobs = async (filters = {}) => {
               location: true
             }
           },
-          jobAssignments: {
-            include: {
-              status: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true
-                }
-              }
-            }
-          },
           createdBy: {
             select: {
               id: true,
@@ -194,14 +183,26 @@ const getAllJobs = async (filters = {}) => {
               lastName: true,
               email: true
             }
+          },
+          _count: {
+            select: { jobAssignments: true }
           }
         }
       }),
       prisma.job.count({ where })
     ]);
 
+    // Add isAssigned flag without returning assignment details
+    const jobsWithAssignmentFlag = jobs.map((job) => {
+      const { _count, ...rest } = job;
+      return {
+        ...rest,
+        isAssigned: !!(_count && _count.jobAssignments > 0)
+      };
+    });
+
     return {
-      jobs,
+      jobs: jobsWithAssignmentFlag,
       pagination: {
         page,
         limit,
@@ -391,6 +392,39 @@ const getJobByCode = async (jobCode) => {
   }
 };
 
+// Partial search by jobCode (case-insensitive contains)
+const searchJobsByCode = async (jobCodePart, filters = {}) => {
+  try {
+    const where = {
+      jobCode: { contains: jobCodePart, mode: 'insensitive' }
+    };
+    if (filters.companyId) where.companyId = filters.companyId;
+    if (filters.isActive !== undefined) where.isActive = filters.isActive;
+
+    const page = parseInt(filters.page) || 1;
+    const limit = parseInt(filters.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const [jobs, total] = await Promise.all([
+      prisma.job.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, jobCode: true }
+      }),
+      prisma.job.count({ where })
+    ]);
+
+    return {
+      jobs,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+    };
+  } catch (error) {
+    throw new Error(`Error searching jobs: ${error.message}`);
+  }
+};
+
 const updateJob = async (id, data) => {
   try {
     const existingJob = await prisma.job.findUnique({
@@ -533,6 +567,7 @@ module.exports = {
   getAllJobs,
   getJobById,
   getJobByCode,
+  searchJobsByCode,
   updateJob,
   deleteJob
 };

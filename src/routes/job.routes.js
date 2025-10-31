@@ -15,6 +15,9 @@ router.get('/', JobController.getAllJobs);
 // Get job by job code
 router.get('/code/:jobCode', JobController.getJobByCode);
 
+// Search jobs by job code (partial match)
+router.get('/search/:jobCode', JobController.searchJobsByCode);
+
 // Get jobs by created by user ID
 router.get('/created-by/:userId', JobController.getJobsByCreatedBy);
 

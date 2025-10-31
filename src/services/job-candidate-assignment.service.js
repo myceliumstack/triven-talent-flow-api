@@ -9,11 +9,20 @@ const prisma = new PrismaClient();
  */
 const createJobCandidateAssignment = async (data) => {
   try {
+    // Resolve default stage to 'new-application' (fallback by name 'New Application')
+    let stage = await prisma.candidateStage.findFirst({ where: { slug: 'new-application' } });
+    if (!stage) {
+      stage = await prisma.candidateStage.findFirst({ where: { name: 'New Application' } });
+    }
+    if (!stage) {
+      throw new Error('Default candidate stage "New Application" not found');
+    }
+
     const assignment = await prisma.jobCandidateAssignment.create({
       data: {
         jobId: data.jobId,
         candidateId: data.candidateId,
-        stageId: data.stageId,
+        stageId: stage.id,
         status: data.status || 'active',
         priority: data.priority || 'normal',
         source: data.source,

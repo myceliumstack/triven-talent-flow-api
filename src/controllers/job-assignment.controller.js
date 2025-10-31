@@ -3,20 +3,22 @@ const jobAssignmentService = require('../services/job-assignment.service');
 // Create a new job assignment
 const createJobAssignment = async (req, res) => {
   try {
-    const { jobId, assignedUserId, statusId, assignedById, priority, notes } = req.body;
+    const { jobId, assignedUserId, priority, notes } = req.body;
+
+    // Derive assignedById from authenticated user
+    const assignedById = req.user?.userId;
 
     // Validation
-    if (!jobId || !assignedUserId || !statusId || !assignedById) {
+    if (!jobId || !assignedUserId || !assignedById) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: jobId, assignedUserId, statusId, assignedById',
+        message: 'Missing required fields: jobId, assignedUserId',
       });
     }
 
     const result = await jobAssignmentService.createJobAssignment({
       jobId,
       assignedUserId,
-      statusId,
       assignedById,
       priority,
       notes,

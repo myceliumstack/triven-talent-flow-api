@@ -6,11 +6,20 @@ class JobAssignmentService {
   // Create a new job assignment
   async createJobAssignment(data) {
     try {
+      // Always use Open status for new job assignments
+      let openStatus = await prisma.jobStatus.findFirst({ where: { slug: 'open' } });
+      if (!openStatus) {
+        openStatus = await prisma.jobStatus.findFirst({ where: { name: 'Open' } });
+      }
+      if (!openStatus) {
+        throw new Error('Default Open job status not found');
+      }
+
       const jobAssignment = await prisma.jobAssignment.create({
         data: {
           jobId: data.jobId,
           assignedUserId: data.assignedUserId,
-          statusId: data.statusId,
+          statusId: openStatus.id,
           assignedById: data.assignedById,
           priority: data.priority || 'normal',
           notes: data.notes,
@@ -21,10 +30,82 @@ class JobAssignmentService {
               id: true,
               jobCode: true,
               title: true,
+              description: true,
+              location: true,
+              remoteType: true,
+              timeZone: true,
+              minSalary: true,
+              maxSalary: true,
+              salaryCurrency: true,
+              salaryNotes: true,
+              feePercentage: true,
+              paymentTerms: true,
+              relocationAssistance: true,
+              relocationDetails: true,
+              warrantyType: true,
+              warrantyPeriodDays: true,
+              skillsMatrix: true,
+              booleanSearch: true,
+              tags: true,
+              companyId: true,
+              jobPostingId: true,
+              createdById: true,
+              modifiedById: true,
+              isActive: true,
+              postingMeta: true,
+              candidateCount: true,
+              notes: true,
+              createdAt: true,
+              updatedAt: true,
               company: {
                 select: {
                   id: true,
                   name: true,
+                  industry: true,
+                  location: true,
+                  website: true,
+                },
+              },
+              jobPosting: {
+                select: {
+                  id: true,
+                  title: true,
+                  category: true,
+                  experienceRange: true,
+                  salaryRange: true,
+                },
+              },
+              createdBy: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+              modifiedBy: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+              jobActivities: {
+                orderBy: { createdAt: 'desc' },
+                take: 10,
+                include: {
+                  createdBy: {
+                    select: { id: true, firstName: true, lastName: true },
+                  },
+                },
+              },
+              jobCandidateAssignments: {
+                take: 10,
+                include: {
+                  candidate: {
+                    select: { id: true, firstName: true, lastName: true, email: true },
+                  },
                 },
               },
             },
@@ -303,12 +384,58 @@ class JobAssignmentService {
               id: true,
               jobCode: true,
               title: true,
+              description: true,
+              location: true,
+              remoteType: true,
+              timeZone: true,
+              minSalary: true,
+              maxSalary: true,
+              salaryCurrency: true,
+              salaryNotes: true,
+              feePercentage: true,
+              paymentTerms: true,
+              relocationAssistance: true,
+              relocationDetails: true,
+              warrantyType: true,
+              warrantyPeriodDays: true,
+              skillsMatrix: true,
+              booleanSearch: true,
+              tags: true,
+              companyId: true,
+              jobPostingId: true,
+              createdById: true,
+              modifiedById: true,
+              isActive: true,
+              postingMeta: true,
+              candidateCount: true,
+              notes: true,
+              createdAt: true,
+              updatedAt: true,
               company: {
                 select: {
                   id: true,
                   name: true,
+                  industry: true,
+                  location: true,
+                  website: true,
                 },
               },
+              createdBy: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+              modifiedBy: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              }
             },
           },
           assignedUser: {
@@ -454,6 +581,14 @@ class JobAssignmentService {
               },
             },
           },
+          assignedUser: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
           assignedBy: {
             select: {
               id: true,
@@ -492,3 +627,4 @@ class JobAssignmentService {
 }
 
 module.exports = new JobAssignmentService();
+

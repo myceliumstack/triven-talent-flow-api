@@ -5,7 +5,7 @@ const createJobCandidateAssignment = async (req, res) => {
     const {
       jobId,
       candidateId,
-      stageId,
+      // stageId is not required; default will be set to 'new-application'
       status,
       priority,
       source,
@@ -14,17 +14,16 @@ const createJobCandidateAssignment = async (req, res) => {
       notes
     } = req.body;
 
-    if (!jobId || !candidateId || !stageId) {
+    if (!jobId || !candidateId) {
       return res.status(400).json({
         success: false,
-        message: 'jobId, candidateId, and stageId are required'
+        message: 'jobId and candidateId are required'
       });
     }
 
     const assignment = await JobCandidateAssignmentService.createJobCandidateAssignment({
       jobId,
       candidateId,
-      stageId,
       status,
       priority,
       source,
