@@ -517,6 +517,7 @@ model Candidate {
   employmentType    String?  @map("employment_type")
   certifications    String[]
   resumeUrl         String?  @map("resume_url")
+  resume            String?  @db.Text @map("resume")
   linkedinUrl       String?  @map("linkedin_url")
   createdById       String   @map("created_by_id")
   modifiedById      String?  @map("modified_by_id")

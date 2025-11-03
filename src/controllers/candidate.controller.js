@@ -233,11 +233,61 @@ const getCandidatesByJobCode = async (req, res) => {
   }
 };
 
+/**
+ * Search candidates by name, email, skills, and resume
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const searchCandidates = async (req, res) => {
+  try {
+    const {
+      q: query,
+      page = 1,
+      limit = 10,
+      isActive,
+      isApplicant,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = req.query;
+
+    if (!query || query.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query is required'
+      });
+    }
+
+    const result = await CandidateService.searchCandidates({
+      query: query.trim(),
+      page: parseInt(page),
+      limit: parseInt(limit),
+      isActive: isActive !== undefined ? isActive === 'true' : undefined,
+      isApplicant: isApplicant !== undefined ? isApplicant === 'true' : undefined,
+      sortBy,
+      sortOrder
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Candidates search completed successfully',
+      data: result.candidates,
+      pagination: result.pagination,
+      searchQuery: result.searchQuery
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   createCandidate,
   getAllCandidates,
   getCandidateById,
   getCandidatesByJobCode,
   updateCandidate,
-  deleteCandidate
+  deleteCandidate,
+  searchCandidates
 };

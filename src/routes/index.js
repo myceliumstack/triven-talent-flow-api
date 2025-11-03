@@ -22,6 +22,7 @@ const userReportingRoutes = require('./user-reporting.routes');
 const userFilterRoutes = require('./user-filter.routes');
 const jobCandidateAssignmentRoutes = require('./job-candidate-assignment.routes');
 const jobAssignmentRoutes = require('./job-assignment.routes');
+const resumeRoutes = require('./resume.routes');
 
 // Mount all routes
 router.use('/auth', authRoutes);
@@ -43,4 +44,5 @@ router.use('/user-reporting', userReportingRoutes);
 router.use('/user-filters', userFilterRoutes);
 router.use('/job-candidate-assignments', jobCandidateAssignmentRoutes);
 router.use('/job-assignments', jobAssignmentRoutes);
+router.use('/resumes', resumeRoutes);
 module.exports = router;

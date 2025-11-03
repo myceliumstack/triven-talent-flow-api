@@ -18,6 +18,9 @@ router.get('/:id', JobCandidateAssignmentController.getJobCandidateAssignmentByI
 // Update job candidate assignment
 router.put('/:id', JobCandidateAssignmentController.updateJobCandidateAssignment);
 
+// Update stageId for job candidate assignment (PATCH)
+router.patch('/:id/stage', JobCandidateAssignmentController.updateStageId);
+
 // Delete job candidate assignment
 router.delete('/:id', JobCandidateAssignmentController.deleteJobCandidateAssignment);
 

@@ -164,11 +164,61 @@ const deleteJobCandidateAssignment = async (req, res) => {
   }
 };
 
+/**
+ * Update stageId for a job candidate assignment (PATCH endpoint)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const updateStageId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { stageId } = req.body;
+
+    if (!stageId) {
+      return res.status(400).json({
+        success: false,
+        message: 'stageId is required'
+      });
+    }
+
+    if (!req.user?.userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User authentication required'
+      });
+    }
+
+    const assignment = await JobCandidateAssignmentService.updateStageId(
+      id,
+      stageId,
+      req.user.userId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Stage ID updated successfully',
+      data: assignment
+    });
+  } catch (error) {
+    let statusCode = 500;
+    if (error.message === 'Job candidate assignment not found' || 
+        error.message === 'Candidate stage not found') {
+      statusCode = 404;
+    }
+
+    res.status(statusCode).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   createJobCandidateAssignment,
   getAllJobCandidateAssignments,
   getJobCandidateAssignmentById,
   updateJobCandidateAssignment,
-  deleteJobCandidateAssignment
+  deleteJobCandidateAssignment,
+  updateStageId
 };
 

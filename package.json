@@ -23,12 +23,16 @@
   "dependencies": {
     "@prisma/client": "^5.7.1",
     "bcryptjs": "^2.4.3",
+    "canvas": "^3.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^5.1.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "multer": "^2.0.2",
+    "pdf2md": "^1.0.2",
+    "pdfjs-dist": "^5.4.394",
     "zod": "^3.22.4"
   },
   "devDependencies": {

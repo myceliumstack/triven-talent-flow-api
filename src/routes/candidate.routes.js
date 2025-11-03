@@ -9,6 +9,9 @@ router.use(authenticateToken);
 // Create candidate
 router.post('/', CandidateController.createCandidate);
 
+// Search candidates (must be before /:id route)
+router.get('/search', CandidateController.searchCandidates);
+
 // Get all candidates
 router.get('/', CandidateController.getAllCandidates);
 

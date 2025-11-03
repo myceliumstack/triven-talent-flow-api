@@ -446,11 +446,166 @@ const getCandidatesByJobCode = async (jobCode, options = {}) => {
   }
 };
 
+/**
+ * Search candidates by name, email, skills, and resume
+ * @param {Object} options - Search options
+ * @returns {Promise<Object>} Search results with pagination
+ */
+const searchCandidates = async (options = {}) => {
+  try {
+    const {
+      query,
+      page = 1,
+      limit = 10,
+      isActive,
+      isApplicant,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = options;
+
+    if (!query || query.trim().length === 0) {
+      throw new Error('Search query is required');
+    }
+
+    const skip = (page - 1) * limit;
+    const searchTerm = query.trim();
+    const searchTermLower = searchTerm.toLowerCase();
+    const searchTermUpper = searchTerm.toUpperCase();
+
+    // Build where clause with comprehensive search
+    const orConditions = [
+      // Search in first name
+      { firstName: { contains: searchTerm, mode: 'insensitive' } },
+      // Search in last name
+      { lastName: { contains: searchTerm, mode: 'insensitive' } },
+      // Search in email
+      { email: { contains: searchTerm, mode: 'insensitive' } }
+    ];
+
+    // Search in full name (if query has space, try splitting)
+    if (searchTerm.includes(' ')) {
+      const nameParts = searchTerm.split(' ');
+      if (nameParts.length >= 2) {
+        orConditions.push({
+          AND: [
+            { firstName: { contains: nameParts[0], mode: 'insensitive' } },
+            { lastName: { contains: nameParts.slice(1).join(' '), mode: 'insensitive' } }
+          ]
+        });
+      }
+    }
+
+    // Search in resume markdown content (only if search term is meaningful)
+    if (searchTerm.length > 2) {
+      orConditions.push({ resume: { contains: searchTerm, mode: 'insensitive' } });
+    }
+
+    // Search in skills array - exact matches (multiple case variations for better matching)
+    orConditions.push(
+      { skills: { has: searchTerm } },
+      { skills: { has: searchTermLower } },
+      { skills: { has: searchTermUpper } }
+    );
+    
+    // For better skills partial matching, try common variations
+    // Split multi-word skills and search for individual words
+    if (searchTerm.includes(' ')) {
+      const skillWords = searchTerm.split(' ').filter(w => w.length > 2);
+      skillWords.forEach(word => {
+        orConditions.push(
+          { skills: { has: word } },
+          { skills: { has: word.toLowerCase() } },
+          { skills: { has: word.toUpperCase() } }
+        );
+      });
+    }
+
+    const where = {
+      OR: orConditions
+    };
+
+    // Add optional filters
+    if (isActive !== undefined) {
+      where.isActive = isActive;
+    }
+    
+    if (isApplicant !== undefined) {
+      where.isApplicant = isApplicant;
+    }
+
+    // Build orderBy
+    const orderBy = {};
+    if (sortBy) {
+      orderBy[sortBy] = sortOrder;
+    }
+
+    const [candidates, total] = await Promise.all([
+      prisma.candidate.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+        include: {
+          createdBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          jobCandidateAssignments: {
+            take: 5,
+            orderBy: { assignedDate: 'desc' },
+            include: {
+              job: {
+                select: {
+                  id: true,
+                  jobCode: true,
+                  title: true,
+                  company: {
+                    select: {
+                      id: true,
+                      name: true
+                    }
+                  }
+                }
+              },
+              stage: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true
+                }
+              }
+            }
+          }
+        }
+      }),
+      prisma.candidate.count({ where })
+    ]);
+
+    return {
+      candidates,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      },
+      searchQuery: searchTerm
+    };
+  } catch (error) {
+    throw new Error(`Error searching candidates: ${error.message}`);
+  }
+};
+
 module.exports = {
   createCandidate,
   getAllCandidates,
   getCandidateById,
   getCandidatesByJobCode,
   updateCandidate,
-  deleteCandidate
+  deleteCandidate,
+  searchCandidates
 };

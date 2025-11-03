@@ -339,6 +339,90 @@ const updateJobCandidateAssignment = async (id, data) => {
 };
 
 /**
+ * Update stageId for a job candidate assignment
+ * @param {string} id - Assignment ID
+ * @param {string} stageId - New stage ID
+ * @param {string} modifiedById - User ID who made the change
+ * @returns {Promise<Object>} Updated assignment
+ */
+const updateStageId = async (id, stageId, modifiedById) => {
+  try {
+    // Verify assignment exists
+    const existingAssignment = await prisma.jobCandidateAssignment.findUnique({
+      where: { id }
+    });
+
+    if (!existingAssignment) {
+      throw new Error('Job candidate assignment not found');
+    }
+
+    // Verify stage exists
+    const stage = await prisma.candidateStage.findUnique({
+      where: { id: stageId }
+    });
+
+    if (!stage) {
+      throw new Error('Candidate stage not found');
+    }
+
+    // Update only stageId
+    const assignment = await prisma.jobCandidateAssignment.update({
+      where: { id },
+      data: {
+        stageId: stageId,
+        modifiedById: modifiedById,
+        lastActivityDate: new Date()
+      },
+      include: {
+        job: {
+          select: {
+            id: true,
+            jobCode: true,
+            title: true,
+            company: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        },
+        candidate: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        stage: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        },
+        modifiedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    return assignment;
+  } catch (error) {
+    if (error.message === 'Job candidate assignment not found' || error.message === 'Candidate stage not found') {
+      throw error;
+    }
+    throw new Error(`Error updating stage ID: ${error.message}`);
+  }
+};
+
+/**
  * Delete job candidate assignment
  * @param {string} id - Assignment ID
  * @returns {Promise<void>}
@@ -366,6 +450,7 @@ module.exports = {
   getAllJobCandidateAssignments,
   getJobCandidateAssignmentById,
   updateJobCandidateAssignment,
-  deleteJobCandidateAssignment
+  deleteJobCandidateAssignment,
+  updateStageId
 };
 
