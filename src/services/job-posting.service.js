@@ -183,13 +183,16 @@ const getAllJobPostings = async (options = {}) => {
       page = 1,
       limit = 10,
       search,
+      title,
       companyId,
       category,
       status,
       experienceRange,
       location,
-      bdmAssigned,
       validation,
+      createdById,
+      startDate,
+      endDate,
       sortBy = 'createdAt',
       sortOrder = 'desc'
     } = options;
@@ -199,6 +202,7 @@ const getAllJobPostings = async (options = {}) => {
     // Build filters
     const where = {};
     
+    // Search filter (searches across multiple fields)
     if (search) {
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
@@ -208,8 +212,33 @@ const getAllJobPostings = async (options = {}) => {
       ];
     }
     
-    if (companyId) where.companyId = companyId;
+    // Individual field filters
+    if (title) {
+      where.title = {
+        contains: title,
+        mode: 'insensitive'
+      };
+    }
+    
+    // Company filter - search by company name (text contains) or exact ID match
+    if (companyId) {
+      // Check if it's a CUID (25 characters) for exact ID match, otherwise search by name
+      if (companyId.length === 25) {
+        // Exact ID match for backward compatibility
+        where.companyId = companyId;
+      } else {
+        // Text search in company name
+        where.company = {
+          name: {
+            contains: companyId,
+            mode: 'insensitive'
+          }
+        };
+      }
+    }
+    
     if (category) where.category = category;
+    
     if (status) {
       // Handle both statusId and status name
       if (status.length === 25) { // CUID length
@@ -218,14 +247,52 @@ const getAllJobPostings = async (options = {}) => {
         where.status = { name: status };
       }
     }
+    
     if (experienceRange) where.experienceRange = experienceRange;
-    if (bdmAssigned) where.bdmAssigned = bdmAssigned;
+    
     if (typeof validation === 'boolean') where.validation = validation;
+    
     if (location) {
       where.location = {
         contains: location,
         mode: 'insensitive'
       };
+    }
+    
+    // Created by filter - search by text in user fields (firstName, lastName, email, or ID)
+    if (createdById) {
+      const createdByOR = [
+        { createdByUser: { firstName: { contains: createdById, mode: 'insensitive' } } },
+        { createdByUser: { lastName: { contains: createdById, mode: 'insensitive' } } },
+        { createdByUser: { email: { contains: createdById, mode: 'insensitive' } } },
+        { createdById: createdById } // Also support exact ID match
+      ];
+      
+      // If search already created an OR, combine them with AND
+      if (where.OR) {
+        const searchOR = where.OR;
+        where.AND = [
+          { OR: searchOR },
+          { OR: createdByOR }
+        ];
+        delete where.OR;
+      } else {
+        where.OR = createdByOR;
+      }
+    }
+    
+    // Date range filter for createdAt
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        where.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set endDate to end of day (23:59:59.999) to include the entire day
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        where.createdAt.lte = endDateTime;
+      }
     }
 
     // Build order by

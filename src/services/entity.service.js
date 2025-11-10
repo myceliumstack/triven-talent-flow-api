@@ -189,14 +189,8 @@ const deleteEntity = async (id) => {
       throw new Error('Cannot delete entity that has job posting assignments');
     }
 
-    // Check if entity is being used by users
-    const usersCount = await prisma.user.count({
-      where: { entityId: id }
-    });
-
-    if (usersCount > 0) {
-      throw new Error('Cannot delete entity that has users assigned');
-    }
+    // Note: Users with this entityId will have their entityId set to null automatically
+    // due to onDelete: SetNull in the schema
 
     await prisma.entity.delete({
       where: { id }

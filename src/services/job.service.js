@@ -59,7 +59,6 @@ const createJob = async (data) => {
           tags: data.tags || [],
           companyId: data.companyId,
           jobPostingId: data.jobPostingId,
-          statusId: data.statusId,
           createdById: data.createdById,
           modifiedById: data.modifiedById,
           isActive: data.isActive !== undefined ? data.isActive : true,
@@ -81,13 +80,6 @@ const createJob = async (data) => {
             id: true,
             title: true,
             category: true
-          }
-        },
-        status: {
-          select: {
-            id: true,
-            name: true,
-            slug: true
           }
         },
         createdBy: {
@@ -236,13 +228,6 @@ const getJobById = async (id) => {
             category: true,
             experienceRange: true,
             salaryRange: true
-          }
-        },
-        status: {
-          select: {
-            id: true,
-            name: true,
-            slug: true
           }
         },
         createdBy: {
@@ -458,7 +443,6 @@ const updateJob = async (id, data) => {
     if (data.tags !== undefined) updateData.tags = data.tags || [];
     if (data.companyId !== undefined) updateData.companyId = data.companyId;
     if (data.jobPostingId !== undefined) updateData.jobPostingId = data.jobPostingId;
-    if (data.statusId !== undefined) updateData.statusId = data.statusId;
     if (data.modifiedById !== undefined) updateData.modifiedById = data.modifiedById;
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
     if (data.postingMeta !== undefined) updateData.postingMeta = data.postingMeta || null;
@@ -475,13 +459,6 @@ const updateJob = async (id, data) => {
             name: true,
             industry: true,
             location: true
-          }
-        },
-        status: {
-          select: {
-            id: true,
-            name: true,
-            slug: true
           }
         },
         createdBy: {

@@ -23,16 +23,15 @@ const createJob = async (req, res) => {
       tags,
       companyId,
       jobPostingId,
-      statusId,
       postingMeta,
       candidateCount,
       notes
     } = req.body;
 
-    if (!title || !companyId || !statusId) {
+    if (!title || !companyId) {
       return res.status(400).json({
         success: false,
-        message: 'Title, companyId, and statusId are required'
+        message: 'Title and companyId are required'
       });
     }
 
@@ -57,7 +56,6 @@ const createJob = async (req, res) => {
       tags,
       companyId,
       jobPostingId,
-      statusId,
       createdById: req.user.userId,
       postingMeta,
       candidateCount,
@@ -234,7 +232,6 @@ const updateJob = async (req, res) => {
       tags,
       companyId,
       jobPostingId,
-      statusId,
       isActive,
       postingMeta,
       candidateCount,
@@ -269,7 +266,6 @@ const updateJob = async (req, res) => {
       tags,
       companyId,
       jobPostingId,
-      statusId,
       modifiedById: req.user.userId,
       isActive,
       postingMeta,

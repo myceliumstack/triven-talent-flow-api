@@ -74,7 +74,6 @@ const createJobPostingSchema = z.object({
   additionalNotes: z.string().max(2000, 'Additional notes too long').optional(),
   createdById: z.string().cuid('Invalid created by user ID').optional(),
   modifiedById: z.string().cuid('Invalid modified by user ID').optional(),
-  bdmAssigned: z.string().max(255, 'BDM assigned too long').optional(),
   statusId: z.string().cuid('Invalid status ID').optional(),
   validation: z.boolean().default(false)
 });

@@ -27,7 +27,7 @@ model User {
   entityId  String?  @map("entity_id")
 
   // Relations
-  entity     Entity?  @relation(fields: [entityId], references: [id])
+  entity     Entity?  @relation(fields: [entityId], references: [id], onDelete: SetNull)
   userRoles  UserRole[]
   
   // Reporting Relations
@@ -308,7 +308,6 @@ model JobPosting {
   sourceUrl        String?  @map("source_url")
   timeZone         String?  @map("time_zone")
   additionalNotes  String?  @map("additional_notes")
-  bdmAssigned      String?  @map("bdm_assigned")
   validation       Boolean  @default(false)
   statusId         String?  @map("status_id")
   jobCode          String?  @unique @map("job_code")
@@ -330,7 +329,6 @@ model JobPosting {
   @@index([title])
   @@index([location])
   @@index([category])
-  @@index([bdmAssigned])
   @@index([validation])
   @@index([statusId])
   @@index([createdAt])
