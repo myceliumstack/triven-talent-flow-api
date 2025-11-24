@@ -20,12 +20,198 @@ const getJobPostingAssignments = async (options = {}) => {
 
     // Build where clause
     const where = {};
-    if (filters.jobPostingId) where.jobPostingId = filters.jobPostingId;
-    if (filters.entityId) where.entityId = filters.entityId;
+    
+    // Assigned user filter
     if (filters.assignedUserId) where.assignedUserId = filters.assignedUserId;
-    if (filters.statusId) where.statusId = filters.statusId;
-    if (filters.priority) where.priority = filters.priority;
-    if (filters.assignedById) where.assignedById = filters.assignedById;
+    
+    // Build AND conditions for specific field filters
+    const andConditions = [];
+    
+    // Job title filter
+    if (filters.jobTitle) {
+      if (Array.isArray(filters.jobTitle) && filters.jobTitle.length > 1) {
+        // Multiple values: use OR logic
+        andConditions.push({
+          OR: filters.jobTitle.map(value => ({
+            jobPosting: {
+              title: { contains: value, mode: 'insensitive' }
+            }
+          }))
+        });
+      } else {
+        // Single value
+        const value = Array.isArray(filters.jobTitle) ? filters.jobTitle[0] : filters.jobTitle;
+        andConditions.push({
+          jobPosting: {
+            title: { contains: value, mode: 'insensitive' }
+          }
+        });
+      }
+    }
+    
+    // Company name filter
+    if (filters.company) {
+      if (Array.isArray(filters.company) && filters.company.length > 1) {
+        // Multiple values: use OR logic
+        andConditions.push({
+          OR: filters.company.map(value => ({
+            jobPosting: {
+              company: {
+                name: { contains: value, mode: 'insensitive' }
+              }
+            }
+          }))
+        });
+      } else {
+        // Single value
+        const value = Array.isArray(filters.company) ? filters.company[0] : filters.company;
+        andConditions.push({
+          jobPosting: {
+            company: {
+              name: { contains: value, mode: 'insensitive' }
+            }
+          }
+        });
+      }
+    }
+    
+    // Category filter
+    if (filters.category) {
+      if (Array.isArray(filters.category) && filters.category.length > 1) {
+        // Multiple values: use OR logic
+        andConditions.push({
+          OR: filters.category.map(value => ({
+            jobPosting: {
+              category: { contains: value, mode: 'insensitive' }
+            }
+          }))
+        });
+      } else {
+        // Single value
+        const value = Array.isArray(filters.category) ? filters.category[0] : filters.category;
+        andConditions.push({
+          jobPosting: {
+            category: { contains: value, mode: 'insensitive' }
+          }
+        });
+      }
+    }
+    
+    // Location filter
+    if (filters.location) {
+      if (Array.isArray(filters.location) && filters.location.length > 1) {
+        // Multiple values: use OR logic
+        andConditions.push({
+          OR: filters.location.map(value => ({
+            jobPosting: {
+              location: { contains: value, mode: 'insensitive' }
+            }
+          }))
+        });
+      } else {
+        // Single value
+        const value = Array.isArray(filters.location) ? filters.location[0] : filters.location;
+        andConditions.push({
+          jobPosting: {
+            location: { contains: value, mode: 'insensitive' }
+          }
+        });
+      }
+    }
+    
+    // Status filter
+    if (filters.status) {
+      if (Array.isArray(filters.status) && filters.status.length > 1) {
+        // Multiple values: use OR logic
+        andConditions.push({
+          OR: filters.status.map(value => ({
+            status: {
+              name: { contains: value, mode: 'insensitive' }
+            }
+          }))
+        });
+      } else {
+        // Single value
+        const value = Array.isArray(filters.status) ? filters.status[0] : filters.status;
+        andConditions.push({
+          status: {
+            name: { contains: value, mode: 'insensitive' }
+          }
+        });
+      }
+    }
+    
+    // Search filter - searches across multiple related fields
+    if (filters.search) {
+      const searchTerm = filters.search;
+      const searchConditions = [
+        { 
+          jobPosting: { 
+            title: { contains: searchTerm, mode: 'insensitive' } 
+          } 
+        },
+        { 
+          jobPosting: { 
+            description: { contains: searchTerm, mode: 'insensitive' } 
+          } 
+        },
+        { 
+          jobPosting: { 
+            location: { contains: searchTerm, mode: 'insensitive' } 
+          } 
+        },
+        { 
+          jobPosting: { 
+            company: { 
+              name: { contains: searchTerm, mode: 'insensitive' } 
+            } 
+          } 
+        },
+        { 
+          entity: { 
+            name: { contains: searchTerm, mode: 'insensitive' } 
+          } 
+        },
+        { 
+          status: { 
+            name: { contains: searchTerm, mode: 'insensitive' } 
+          } 
+        },
+        { 
+          assignedUser: { 
+            OR: [
+              { firstName: { contains: searchTerm, mode: 'insensitive' } },
+              { lastName: { contains: searchTerm, mode: 'insensitive' } },
+              { email: { contains: searchTerm, mode: 'insensitive' } }
+            ]
+          } 
+        },
+        { 
+          assignedBy: { 
+            OR: [
+              { firstName: { contains: searchTerm, mode: 'insensitive' } },
+              { lastName: { contains: searchTerm, mode: 'insensitive' } },
+              { email: { contains: searchTerm, mode: 'insensitive' } }
+            ]
+          } 
+        },
+        { 
+          notes: { contains: searchTerm, mode: 'insensitive' } 
+        }
+      ];
+      
+      // Add search conditions to AND array if specific filters exist, otherwise use OR
+      if (andConditions.length > 0) {
+        andConditions.push({ OR: searchConditions });
+      } else {
+        where.OR = searchConditions;
+      }
+    }
+    
+    // Apply AND conditions if any specific filters are present
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
+    }
 
     // Build orderBy clause
     const orderBy = {};

@@ -11,24 +11,61 @@ const getJobPostingAssignments = async (req, res) => {
     const {
       page = 1,
       limit = 10,
-      jobPostingId,
-      entityId,
       assignedUserId,
-      statusId,
-      priority,
-      assignedById,
+      search,
+      jobTitle,
+      company,
+      category,
+      location,
+      status,
       sortBy = 'assignedAt',
       sortOrder = 'desc'
     } = req.query;
 
-    const filters = {
-      jobPostingId,
-      entityId,
-      assignedUserId,
-      statusId,
-      priority,
-      assignedById
+    // Helper function to parse comma-separated values into array
+    const parseFilterValue = (value) => {
+      if (!value) return null;
+      if (Array.isArray(value)) {
+        // Handle array format: ?jobTitle[]=dev&jobTitle[]=eng
+        return value.map(v => v.trim()).filter(v => v.length > 0);
+      }
+      // Handle comma-separated format: ?jobTitle=dev,eng
+      return value.split(',').map(v => v.trim()).filter(v => v.length > 0);
     };
+
+    // Build filters object
+    const filters = {};
+    
+    if (assignedUserId) filters.assignedUserId = assignedUserId;
+    
+    // Search filter
+    if (search) filters.search = search;
+    
+    // Specific field searches - support multiple values
+    const jobTitleValues = parseFilterValue(jobTitle);
+    if (jobTitleValues && jobTitleValues.length > 0) {
+      filters.jobTitle = jobTitleValues.length === 1 ? jobTitleValues[0] : jobTitleValues;
+    }
+    
+    const companyValues = parseFilterValue(company);
+    if (companyValues && companyValues.length > 0) {
+      filters.company = companyValues.length === 1 ? companyValues[0] : companyValues;
+    }
+    
+    const categoryValues = parseFilterValue(category);
+    if (categoryValues && categoryValues.length > 0) {
+      filters.category = categoryValues.length === 1 ? categoryValues[0] : categoryValues;
+    }
+    
+    const locationValues = parseFilterValue(location);
+    if (locationValues && locationValues.length > 0) {
+      filters.location = locationValues.length === 1 ? locationValues[0] : locationValues;
+    }
+    
+    const statusValues = parseFilterValue(status);
+    if (statusValues && statusValues.length > 0) {
+      filters.status = statusValues.length === 1 ? statusValues[0] : statusValues;
+    }
 
     const result = await JobPostingAssignmentService.getJobPostingAssignments({
       page: parseInt(page),
