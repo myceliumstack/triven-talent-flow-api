@@ -27,10 +27,21 @@ const createJobAssignment = async (req, res) => {
     if (result.success) {
       res.status(201).json(result);
     } else {
-      res.status(400).json(result);
+      // Use 409 Conflict for duplicate assignment
+      const statusCode = result.error?.includes('already assigned') ? 409 : 400;
+      res.status(statusCode).json(result);
     }
   } catch (error) {
     console.error('Error in createJobAssignment controller:', error);
+    
+    // Handle Prisma unique constraint violation
+    if (error.code === 'P2002' && error.meta?.target?.includes('jobId') && error.meta?.target?.includes('assignedUserId')) {
+      return res.status(409).json({
+        success: false,
+        message: 'This job is already assigned to this user'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -149,6 +160,23 @@ const updateJobAssignment = async (req, res) => {
     }
   } catch (error) {
     console.error('Error in updateJobAssignment controller:', error);
+    
+    // Handle duplicate assignment error
+    if (error.message === 'This job is already assigned to this user') {
+      return res.status(409).json({
+        success: false,
+        message: 'This job is already assigned to this user'
+      });
+    }
+    
+    // Handle Prisma unique constraint violation
+    if (error.code === 'P2002' && error.meta?.target?.includes('jobId') && error.meta?.target?.includes('assignedUserId')) {
+      return res.status(409).json({
+        success: false,
+        message: 'This job is already assigned to this user'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Internal server error',

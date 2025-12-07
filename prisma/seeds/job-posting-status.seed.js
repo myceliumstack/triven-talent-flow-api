@@ -3,18 +3,19 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const jobPostingStatuses = [
-  { name: 'uncontacted', isActive: true },
-  { name: 'contacted', isActive: true },
-  { name: 'follow-up 1', isActive: true },
-  { name: 'follow-up 2', isActive: true },
-  { name: 'Follow-up Completed', isActive: true },
-  { name: 'Connected', isActive: true },
-  { name: 'Future', isActive: true },
-  { name: 'Negative', isActive: true },
-  { name: 'DNC', isActive: true },
-  { name: 'Qualified', isActive: true },
-  { name: 'Closed won', isActive: true },
-  { name: 'Closed lost', isActive: true }
+  { name: 'New', isActive: true, allowedFor: ['RA'] }, // RA context only
+  { name: 'uncontacted', isActive: true, allowedFor: ['validation'] }, // Validation context only
+  { name: 'contacted', isActive: true, allowedFor: ['validation'] }, // Validation context only
+  { name: 'follow-up 1', isActive: true, allowedFor: ['validation', 'followup'] }, // Both validation and followup
+  { name: 'follow-up 2', isActive: true, allowedFor: ['validation', 'followup'] }, // Both validation and followup
+  { name: 'Follow-up Completed', isActive: true, allowedFor: ['validation', 'followup'] }, // Both validation and followup
+  { name: 'Connected', isActive: true, allowedFor: ['validation', 'followup'] }, // Both validation and followup
+  { name: 'Future', isActive: true, allowedFor: ['validation', 'followup'] }, // Both validation and followup
+  { name: 'Negative', isActive: true, allowedFor: ['validation', 'followup'] }, // Both validation and followup
+  { name: 'DNC', isActive: true, allowedFor: ['validation', 'followup'] }, // Both validation and followup
+  { name: 'Qualified', isActive: true, allowedFor: ['validation', 'followup'] }, // Both validation and followup
+  { name: 'Closed won', isActive: true, allowedFor: [] }, // Not available in any context
+  { name: 'Closed lost', isActive: true, allowedFor: [] } // Not available in any context
 ];
 
 async function seedJobPostingStatuses() {

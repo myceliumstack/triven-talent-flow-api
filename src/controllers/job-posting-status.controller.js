@@ -13,6 +13,7 @@ const getStatuses = async (req, res) => {
       limit: parseInt(req.query.limit) || 50,
       search: req.query.search,
       isActive: req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined,
+      context: req.query.context, // 'validation' or 'followup' - filters by allowedFor
       sortBy: req.query.sortBy || 'name',
       sortOrder: req.query.sortOrder || 'asc'
     };
@@ -270,7 +271,7 @@ const getStatusStats = async (req, res) => {
  */
 const searchStatuses = async (req, res) => {
   try {
-    const { q } = req.query;
+    const { q, context } = req.query;
     
     if (!q || q.length < 2) {
       return res.status(400).json({
@@ -279,7 +280,7 @@ const searchStatuses = async (req, res) => {
       });
     }
 
-    const statuses = await JobPostingStatusService.searchStatuses(q);
+    const statuses = await JobPostingStatusService.searchStatuses(q, context);
 
     res.status(200).json({
       success: true,
@@ -288,6 +289,38 @@ const searchStatuses = async (req, res) => {
     });
   } catch (error) {
     console.error('Error searching statuses:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+/**
+ * Get statuses by context (RA, validation, or followup page)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getStatusesByContext = async (req, res) => {
+  try {
+    const { context } = req.params; // 'RA', 'validation', or 'followup'
+    
+    if (!context || !['RA', 'validation', 'followup'].includes(context)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid context. Must be "RA", "validation", or "followup"'
+      });
+    }
+
+    const statuses = await JobPostingStatusService.getStatusesByContext(context);
+
+    res.status(200).json({
+      success: true,
+      message: `Statuses for ${context} page retrieved successfully`,
+      data: statuses
+    });
+  } catch (error) {
+    console.error('Error getting statuses by context:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -304,5 +337,6 @@ module.exports = {
   deleteStatus,
   toggleStatus,
   getStatusStats,
-  searchStatuses
+  searchStatuses,
+  getStatusesByContext
 };

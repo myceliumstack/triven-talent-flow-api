@@ -12,6 +12,7 @@ const getAllStatuses = async (options = {}) => {
       limit = 50,
       search,
       isActive,
+      context, // 'RA', 'validation', or 'followup' - filters by allowedFor
       sortBy = 'name',
       sortOrder = 'asc'
     } = options;
@@ -30,6 +31,14 @@ const getAllStatuses = async (options = {}) => {
 
     if (typeof isActive === 'boolean') {
       where.isActive = isActive;
+    }
+
+    // Filter by context (RA, validation, or followup page)
+    if (context) {
+      where.OR = [
+        { allowedFor: { has: context } },
+        { allowedFor: { has: 'all' } }
+      ];
     }
 
     // Build sort order
@@ -271,25 +280,66 @@ const getStatusStats = async () => {
 /**
  * Search statuses
  * @param {string} query - Search query
+ * @param {string} context - Optional context filter ('RA', 'validation', or 'followup')
  * @returns {Promise<Array>} Matching statuses
  */
-const searchStatuses = async (query) => {
+const searchStatuses = async (query, context = null) => {
     if (!query || query.length < 2) {
       return [];
     }
 
+    const where = {
+      OR: [
+        { name: { contains: query, mode: 'insensitive' } }
+      ]
+    };
+
+    // Filter by context if provided
+    if (context) {
+      where.OR = [
+        { name: { contains: query, mode: 'insensitive' } }
+      ];
+      where.AND = [
+        {
+          OR: [
+            { allowedFor: { has: context } },
+            { allowedFor: { has: 'all' } }
+          ]
+        }
+      ];
+    }
+
     return await prisma.jobPostingStatus.findMany({
-      where: {
-        OR: [
-          { name: { contains: query, mode: 'insensitive' } }
-        ]
-      },
+      where,
       include: {
         _count: {
           select: { jobPostings: true }
         }
       },
       orderBy: { name: 'asc' }
+    });
+};
+
+/**
+ * Get statuses by context (RA, validation, or followup page)
+ * @param {string} context - 'RA', 'validation', or 'followup'
+ * @returns {Promise<Array>} Statuses available for the context
+ */
+const getStatusesByContext = async (context) => {
+    return await prisma.jobPostingStatus.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { allowedFor: { has: context } },
+          { allowedFor: { has: 'all' } }
+        ]
+      },
+      orderBy: { name: 'asc' },
+      include: {
+        _count: {
+          select: { jobPostings: true }
+        }
+      }
     });
 };
 
@@ -302,5 +352,6 @@ module.exports = {
   deleteStatus,
   toggleStatus,
   getStatusStats,
-  searchStatuses
+  searchStatuses,
+  getStatusesByContext
 };

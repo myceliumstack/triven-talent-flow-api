@@ -40,7 +40,10 @@ const login = async (req, res) => {
       data: result
     });
   } catch (error) {
-    res.status(401).json({
+    // Use 403 Forbidden for deactivated accounts, 401 for invalid credentials
+    const statusCode = error.message === 'Your account has been deactivated' ? 403 : 401;
+    
+    res.status(statusCode).json({
       success: false,
       message: error.message
     });

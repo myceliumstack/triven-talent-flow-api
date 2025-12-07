@@ -386,6 +386,12 @@ const createJobPostingAssignment = async (jobPostingId, entityId, assignedById, 
       }
     });
 
+    // Update assignment field to true for the job posting
+    await prisma.jobPosting.update({
+      where: { id: jobPostingId },
+      data: { assignment: true }
+    });
+
     return assignment;
   } catch (error) {
     console.error('Error creating job posting assignment:', error);
@@ -486,10 +492,25 @@ const deleteJobPostingAssignment = async (assignmentId) => {
       throw new Error('Assignment not found');
     }
 
+    const jobPostingId = existingAssignment.jobPostingId;
+
     // Delete assignment
     await prisma.jobPostingAssignment.delete({
       where: { id: assignmentId }
     });
+
+    // Check if there are any remaining assignments for this job posting
+    const remainingAssignments = await prisma.jobPostingAssignment.count({
+      where: { jobPostingId }
+    });
+
+    // If no assignments remain, set assignment field to false
+    if (remainingAssignments === 0) {
+      await prisma.jobPosting.update({
+        where: { id: jobPostingId },
+        data: { assignment: false }
+      });
+    }
 
     return { success: true, message: 'Assignment deleted successfully' };
   } catch (error) {
@@ -588,6 +609,17 @@ const bulkAssignJobPostingsToEntities = async (jobPostingIds, entityIds, assigne
         skippedCount,
         createdAssignments
       };
+    });
+
+    // Update assignment field to true for all job postings that got assignments
+    const uniqueJobPostingIds = [...new Set(assignmentsData.map(a => a.jobPostingId))];
+    await prisma.jobPosting.updateMany({
+      where: {
+        id: { in: uniqueJobPostingIds }
+      },
+      data: {
+        assignment: true
+      }
     });
 
     // Get created assignments with details

@@ -6,6 +6,18 @@ class JobAssignmentService {
   // Create a new job assignment
   async createJobAssignment(data) {
     try {
+      // Check if assignment already exists for this job and user
+      const existingAssignment = await prisma.jobAssignment.findFirst({
+        where: {
+          jobId: data.jobId,
+          assignedUserId: data.assignedUserId
+        }
+      });
+
+      if (existingAssignment) {
+        throw new Error('This job is already assigned to this user');
+      }
+
       // Always use Open status for new job assignments
       let openStatus = await prisma.jobStatus.findFirst({ where: { slug: 'open' } });
       if (!openStatus) {
@@ -143,6 +155,17 @@ class JobAssignmentService {
       };
     } catch (error) {
       console.error('Error creating job assignment:', error);
+      
+      // Re-throw the error so controller can handle it properly
+      if (error.message === 'This job is already assigned to this user') {
+        throw error;
+      }
+      
+      // Handle Prisma unique constraint violation
+      if (error.code === 'P2002' && error.meta?.target?.includes('jobId') && error.meta?.target?.includes('assignedUserId')) {
+        throw new Error('This job is already assigned to this user');
+      }
+      
       return {
         success: false,
         error: error.message,
@@ -369,6 +392,21 @@ class JobAssignmentService {
         };
       }
 
+      // If assignedUserId is being updated, check for duplicate assignment
+      if (data.assignedUserId !== undefined && data.assignedUserId !== existingAssignment.assignedUserId) {
+        const duplicateAssignment = await prisma.jobAssignment.findFirst({
+          where: {
+            jobId: existingAssignment.jobId,
+            assignedUserId: data.assignedUserId,
+            id: { not: id } // Exclude current assignment
+          }
+        });
+
+        if (duplicateAssignment) {
+          throw new Error('This job is already assigned to this user');
+        }
+      }
+
       const updateData = {};
       if (data.assignedUserId !== undefined) updateData.assignedUserId = data.assignedUserId;
       if (data.statusId !== undefined) updateData.statusId = data.statusId;
@@ -471,6 +509,17 @@ class JobAssignmentService {
       };
     } catch (error) {
       console.error('Error updating job assignment:', error);
+      
+      // Re-throw the error so controller can handle it properly
+      if (error.message === 'This job is already assigned to this user') {
+        throw error;
+      }
+      
+      // Handle Prisma unique constraint violation
+      if (error.code === 'P2002' && error.meta?.target?.includes('jobId') && error.meta?.target?.includes('assignedUserId')) {
+        throw new Error('This job is already assigned to this user');
+      }
+      
       return {
         success: false,
         error: error.message,

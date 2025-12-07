@@ -20,6 +20,7 @@ const {
   getAllCompanies,
   bulkValidateJobPostings,
   bulkUnvalidateJobPostings,
+  bulkRejectJobPostings,
   bulkAssignJobPostingsToEntities
 } = require('../controllers/job-posting.controller');
 const { validateRequest } = require('../utils/validation.utils');
@@ -90,6 +91,9 @@ router.post('/bulk-validate', bulkValidateJobPostings);
 
 // POST /api/job-postings/bulk-unvalidate - Bulk unvalidate multiple job postings
 router.post('/bulk-unvalidate', bulkUnvalidateJobPostings);
+
+// POST /api/job-postings/bulk-reject - Bulk reject multiple job postings
+router.post('/bulk-reject', bulkRejectJobPostings);
 
 // POST /api/job-postings/bulk-assign - Bulk assign job postings to entities
 router.post('/bulk-assign', bulkAssignJobPostingsToEntities);

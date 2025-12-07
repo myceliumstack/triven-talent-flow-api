@@ -91,8 +91,9 @@ const loginUser = async (email, password) => {
       throw new Error('Invalid email or password');
     }
 
+    // Check if user account is active before password verification
     if (!user.isActive) {
-      throw new Error('Account is deactivated');
+      throw new Error('Your account has been deactivated');
     }
 
     // Verify password

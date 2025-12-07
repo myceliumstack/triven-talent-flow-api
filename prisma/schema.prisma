@@ -278,6 +278,7 @@ model JobPostingStatus {
   id        String   @id @default(cuid())
   name      String   @unique
   isActive  Boolean  @default(true) @map("is_active")
+  allowedFor String[] @default(["all"]) @map("allowed_for")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   
@@ -308,10 +309,12 @@ model JobPosting {
   sourceUrl        String?  @map("source_url")
   timeZone         String?  @map("time_zone")
   additionalNotes  String?  @map("additional_notes")
-  validation       Boolean  @default(false)
-  statusId         String?  @map("status_id")
+  validation       String?  @map("validation")
+  statusId         String   @map("status_id")
   jobCode          String?  @unique @map("job_code")
+  postingId        String?  @unique @map("posting_id")
   mailingTeam      String?  @map("mailing_team")
+  assignment       Boolean  @default(false) @map("assignment")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
   createdById      String?  @map("created_by_id")
@@ -319,7 +322,7 @@ model JobPosting {
   
   // Relations
   company              Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  status               JobPostingStatus?      @relation(fields: [statusId], references: [id])
+  status               JobPostingStatus       @relation(fields: [statusId], references: [id])
   createdByUser        User?                  @relation("JobPostingCreatedBy", fields: [createdById], references: [id])
   modifiedByUser       User?                  @relation("JobPostingModifiedBy", fields: [modifiedById], references: [id])
   jobPostingAssignments JobPostingAssignment[]
@@ -331,6 +334,8 @@ model JobPosting {
   @@index([category])
   @@index([validation])
   @@index([statusId])
+  @@index([postingId])
+  @@index([assignment])
   @@index([createdAt])
   @@map("job_postings")
 }
@@ -635,6 +640,7 @@ model JobAssignment {
   assignedBy   User      @relation("JobAssignmentAssignedBy", fields: [assignedById], references: [id])
   status       JobStatus @relation(fields: [statusId], references: [id])
   
+  @@unique([jobId, assignedUserId])
   @@index([jobId])
   @@index([assignedUserId])
   @@index([statusId])

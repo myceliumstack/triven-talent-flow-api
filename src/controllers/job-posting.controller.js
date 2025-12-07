@@ -36,7 +36,7 @@ const getJobPostings = async (req, res) => {
         status,
         experienceRange,
         location,
-        validation: validation === 'true' ? true : validation === 'false' ? false : undefined,
+        validation,
         createdById,
         startDate,
         endDate,
@@ -179,6 +179,8 @@ const updateJobPosting = async (req, res) => {
       });
     } catch (error) {
       console.error('Error updating job posting:', error);
+      console.error('Error stack:', error.stack);
+      console.error('Error code:', error.code);
       
       if (error.message === 'Job posting not found') {
         return res.status(404).json({
@@ -196,9 +198,28 @@ const updateJobPosting = async (req, res) => {
       });
     }
 
+    // Handle Prisma foreign key constraint errors
+    if (error.code === 'P2003') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid reference: One of the provided IDs does not exist',
+        details: error.meta
+      });
+    }
+
+    // Handle Prisma record not found errors
+    if (error.code === 'P2025') {
+      return res.status(404).json({
+        success: false,
+        message: 'Record not found',
+        details: error.meta
+      });
+    }
+
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -374,9 +395,8 @@ const getJobPostingsByStatus = async (req, res) => {
 const getJobPostingsByValidation = async (req, res) => {
   try {
     const { validation } = req.params;
-    const validationStatus = validation === 'true';
     
-    const jobPostings = await JobPostingService.getJobPostingsByValidation(validationStatus);
+    const jobPostings = await JobPostingService.getJobPostingsByValidation(validation);
 
     res.status(200).json({
       success: true,
@@ -595,6 +615,57 @@ const bulkValidateJobPostings = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error during bulk validation',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Bulk reject multiple job postings
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const bulkRejectJobPostings = async (req, res) => {
+  try {
+    const { jobPostingIds } = req.body;
+    const userId = req.user.userId;
+
+    // Validate input
+    if (!jobPostingIds || !Array.isArray(jobPostingIds) || jobPostingIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Job posting IDs array is required and must not be empty'
+      });
+    }
+
+    // Validate array length (prevent abuse)
+    if (jobPostingIds.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot reject more than 100 job postings at once'
+      });
+    }
+
+    // Call service method
+    const result = await JobPostingService.bulkRejectJobPostings(jobPostingIds, userId);
+
+    // Determine response status
+    const statusCode = result.failedCount > 0 ? 207 : 200; // 207 for partial success
+
+    res.status(statusCode).json({
+      success: true,
+      message: `Successfully rejected ${result.rejectedCount} job postings`,
+      rejectedCount: result.rejectedCount,
+      failedCount: result.failedCount,
+      results: result.results,
+      errors: result.errors
+    });
+
+  } catch (error) {
+    console.error('Bulk rejection error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during bulk rejection',
       error: error.message
     });
   }
@@ -997,6 +1068,7 @@ module.exports = {
   getJobPostingsByExperience,
   bulkValidateJobPostings,
   bulkUnvalidateJobPostings,
+  bulkRejectJobPostings,
   getAllCompanies,
   bulkAssignJobPostingsToEntities,
   getJobPostingAssignments,

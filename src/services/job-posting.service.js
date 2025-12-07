@@ -1,6 +1,9 @@
 // src/services/job-posting.service.js
 const prisma = require('../config/database');
 
+// Default status name constant - can be updated if the status name changes
+const DEFAULT_JOB_POSTING_STATUS_NAME = 'New';
+
 // Lightweight include object for list views (optimized for performance)
 const jobPostingListIncludes = {
   company: {
@@ -46,13 +49,6 @@ const jobPostingDetailIncludes = {
       id: true,
       jobCode: true,
       title: true,
-      status: {
-        select: {
-          id: true,
-          name: true,
-          slug: true
-        }
-      },
       createdAt: true
     }
   }
@@ -250,7 +246,7 @@ const getAllJobPostings = async (options = {}) => {
     
     if (experienceRange) where.experienceRange = experienceRange;
     
-    if (typeof validation === 'boolean') where.validation = validation;
+    if (validation) where.validation = validation;
     
     if (location) {
       where.location = {
@@ -450,6 +446,25 @@ const getJobPostingById = async (id) => {
 };
 
 /**
+ * Get default job posting status ID by name
+ * @returns {Promise<string>} Default status ID
+ */
+const getDefaultStatusId = async () => {
+  const defaultStatus = await prisma.jobPostingStatus.findFirst({
+    where: { 
+      name: DEFAULT_JOB_POSTING_STATUS_NAME,
+      isActive: true 
+    }
+  });
+
+  if (!defaultStatus) {
+    throw new Error(`Default job posting status "${DEFAULT_JOB_POSTING_STATUS_NAME}" not found. Please ensure this status exists in the database.`);
+  }
+
+  return defaultStatus.id;
+};
+
+/**
  * Create new job posting
  * @param {Object} jobData - Job posting data
  * @param {string} createdById - User ID who created the job posting
@@ -465,14 +480,30 @@ const createJobPosting = async (jobData, createdById) => {
       throw new Error('Company not found');
     }
 
+    // Get default status ID (looks up by name from constant)
+    const defaultStatusId = await getDefaultStatusId();
+
+    // Remove statusId, validation, and postingId from jobData if provided (we'll override them)
+    const { statusId, validation, postingId, ...restJobData } = jobData;
+
+    // Generate human-readable posting ID
+    const { generatePostingId } = require('../utils/job-code.utils');
+    const generatedPostingId = await generatePostingId(prisma);
+
     const jobPosting = await prisma.jobPosting.create({
       data: {
-        ...jobData,
+        ...restJobData,
+        statusId: defaultStatusId,  // Automatically set to default status
+        validation: 'pending',      // Automatically set to "pending"
+        postingId: generatedPostingId, // Automatically generate human-readable posting ID
         createdById
       },
       include: {
         company: {
           select: { id: true, name: true, industry: true, location: true }
+        },
+        status: {
+          select: { id: true, name: true, isActive: true }
         },
         createdByUser: {
           select: { id: true, firstName: true, lastName: true, email: true }
@@ -501,14 +532,36 @@ const bulkCreateJobPostings = async (jobPostingsData, createdById) => {
       throw new Error('One or more companies not found');
     }
 
-    const result = await prisma.jobPosting.createMany({
-      data: jobPostingsData.map(job => ({
-        ...job,
-        createdById
-      }))
-    });
+    // Get default status ID once
+    const defaultStatusId = await getDefaultStatusId();
 
-    return { count: result.count };
+    // Generate posting IDs for all job postings
+    const { generatePostingId } = require('../utils/job-code.utils');
+    const postingIds = [];
+    
+    // Generate unique posting IDs sequentially
+    for (let i = 0; i < jobPostingsData.length; i++) {
+      const postingId = await generatePostingId(prisma);
+      postingIds.push(postingId);
+    }
+
+    // Use transaction to create all job postings with their posting IDs
+    const result = await prisma.$transaction(
+      jobPostingsData.map((job, index) => {
+        const { statusId, validation, postingId, ...restJob } = job;
+        return prisma.jobPosting.create({
+          data: {
+            ...restJob,
+            statusId: defaultStatusId,  // Automatically set to default status
+            validation: 'pending',      // Automatically set to "pending"
+            postingId: postingIds[index], // Assign generated posting ID
+            createdById
+          }
+        });
+      })
+    );
+
+    return { count: result.length, jobPostings: result };
 };
 
 /**
@@ -540,10 +593,15 @@ const updateJobPosting = async (id, updateData, modifiedById) => {
     }
 
     try {
+      // Filter out undefined values to avoid Prisma issues
+      const cleanUpdateData = Object.fromEntries(
+        Object.entries(updateData).filter(([_, value]) => value !== undefined)
+      );
+
       const jobPosting = await prisma.jobPosting.update({
         where: { id },
         data: {
-          ...updateData,
+          ...cleanUpdateData,
           modifiedById
         },
         include: jobPostingDetailIncludes
@@ -551,9 +609,23 @@ const updateJobPosting = async (id, updateData, modifiedById) => {
 
       return jobPosting;
     } catch (error) {
+      console.error('Prisma error in updateJobPosting:', error);
+      console.error('Error code:', error.code);
+      console.error('Error meta:', error.meta);
+      
       if (error.code === 'P2003') {
+        // Foreign key constraint failed
+        const fieldName = error.meta?.field_name || 'unknown field';
+        if (fieldName.includes('status')) {
+          throw new Error('Invalid status ID: The specified status does not exist');
+        }
         throw new Error('Invalid user reference: The specified user does not exist');
       }
+      
+      if (error.code === 'P2025') {
+        throw new Error('Job posting not found');
+      }
+      
       throw error;
     }
 };
@@ -716,6 +788,7 @@ const searchJobPostings = async (query) => {
       },
       select: {
         id: true,
+        postingId: true,
         title: true,
         location: true,
         category: true,
@@ -732,7 +805,7 @@ const searchJobPostings = async (query) => {
 
 /**
  * Get job postings by validation status
- * @param {boolean} validationStatus - Validation status (true/false)
+ * @param {string} validationStatus - Validation status (string value)
  * @returns {Promise<Array>} Job postings with the validation status
  */
 const getJobPostingsByValidation = async (validationStatus) => {
@@ -746,7 +819,7 @@ const getJobPostingsByValidation = async (validationStatus) => {
 /**
  * Update validation status of a job posting
  * @param {string} id - Job posting ID
- * @param {boolean} validationStatus - New validation status
+ * @param {string} validationStatus - New validation status (string)
  * @param {string} modifiedById - User ID who modified the job posting
  * @returns {Promise<Object>} Updated job posting
  */
@@ -759,15 +832,37 @@ const updateJobPostingValidation = async (id, validationStatus, modifiedById) =>
       throw new Error('Job posting not found');
     }
 
+    // Prepare update data
+    const updateData = {
+      validation: validationStatus,
+      modifiedById
+    };
+
+    // If validation is set to "validated", also update statusId to "uncontacted"
+    if (validationStatus === 'validated') {
+      const uncontactedStatus = await prisma.jobPostingStatus.findFirst({
+        where: { 
+          name: 'uncontacted',
+          isActive: true 
+        }
+      });
+
+      if (!uncontactedStatus) {
+        throw new Error('Uncontacted status not found. Please ensure the status exists in the database.');
+      }
+
+      updateData.statusId = uncontactedStatus.id;
+    }
+
     return await prisma.jobPosting.update({
       where: { id },
-      data: {
-        validation: validationStatus,
-        modifiedById
-      },
+      data: updateData,
       include: {
         company: {
           select: { id: true, name: true, industry: true, location: true }
+        },
+        status: {
+          select: { id: true, name: true, isActive: true }
         },
         createdByUser: {
           select: { id: true, firstName: true, lastName: true, email: true }
@@ -796,13 +891,25 @@ const bulkValidateJobPostings = async (jobPostingIds, validatedById) => {
       let validatedCount = 0;
       let failedCount = 0;
 
+      // Get "uncontacted" status ID once (required when validation is set to "validated")
+      const uncontactedStatus = await prisma.jobPostingStatus.findFirst({
+        where: { 
+          name: 'uncontacted',
+          isActive: true 
+        }
+      });
+
+      if (!uncontactedStatus) {
+        throw new Error('Uncontacted status not found. Please ensure the status exists in the database.');
+      }
+
       // Process each job posting
       for (const jobPostingId of jobPostingIds) {
         try {
           // Find the job posting
           const jobPosting = await prisma.jobPosting.findUnique({
             where: { id: jobPostingId },
-            select: { id: true, validation: true, title: true }
+            select: { id: true, postingId: true, validation: true, title: true }
           });
 
           if (!jobPosting) {
@@ -815,7 +922,7 @@ const bulkValidateJobPostings = async (jobPostingIds, validatedById) => {
           }
 
           // Check if already validated
-          if (jobPosting.validation === true) {
+          if (jobPosting.validation === 'validated') {
             errors.push({
               id: jobPostingId,
               error: 'Job posting already validated'
@@ -824,11 +931,12 @@ const bulkValidateJobPostings = async (jobPostingIds, validatedById) => {
             continue;
           }
 
-          // Update validation status
+          // Update validation status and statusId to "uncontacted"
           await prisma.jobPosting.update({
             where: { id: jobPostingId },
             data: {
-              validation: true,
+              validation: 'validated',
+              statusId: uncontactedStatus.id,  // Set status to "uncontacted" when validated
               modifiedById: validatedById,
               updatedAt: new Date()
             }
@@ -865,6 +973,91 @@ const bulkValidateJobPostings = async (jobPostingIds, validatedById) => {
 };
 
 /**
+ * Bulk reject multiple job postings
+ * @param {Array} jobPostingIds - Array of job posting IDs to reject
+ * @param {string} rejectedById - ID of the user performing rejection
+ * @returns {Promise<Object>} Bulk rejection results
+ */
+const bulkRejectJobPostings = async (jobPostingIds, rejectedById) => {
+    try {
+      if (!jobPostingIds || !Array.isArray(jobPostingIds) || jobPostingIds.length === 0) {
+        throw new Error('Job posting IDs array is required and must not be empty');
+      }
+
+      const results = [];
+      const errors = [];
+      let rejectedCount = 0;
+      let failedCount = 0;
+
+      // Process each job posting
+      for (const jobPostingId of jobPostingIds) {
+        try {
+          // Find the job posting
+          const jobPosting = await prisma.jobPosting.findUnique({
+            where: { id: jobPostingId },
+            select: { id: true, postingId: true, validation: true, title: true }
+          });
+
+          if (!jobPosting) {
+            errors.push({
+              id: jobPostingId,
+              error: 'Job posting not found'
+            });
+            failedCount++;
+            continue;
+          }
+
+          // Check if already rejected
+          if (jobPosting.validation === 'rejected') {
+            errors.push({
+              id: jobPostingId,
+              error: 'Job posting already rejected'
+            });
+            failedCount++;
+            continue;
+          }
+
+          // Update validation status only (do not change statusId)
+          await prisma.jobPosting.update({
+            where: { id: jobPostingId },
+            data: {
+              validation: 'rejected',
+              modifiedById: rejectedById,
+              updatedAt: new Date()
+            }
+          });
+
+          results.push({
+            id: jobPostingId,
+            title: jobPosting.title,
+            status: 'rejected',
+            message: 'Successfully rejected'
+          });
+          rejectedCount++;
+
+        } catch (error) {
+          errors.push({
+            id: jobPostingId,
+            error: error.message
+          });
+          failedCount++;
+        }
+      }
+
+      return {
+        success: true,
+        rejectedCount,
+        failedCount,
+        results,
+        errors: errors.length > 0 ? errors : undefined
+      };
+
+    } catch (error) {
+      throw new Error(`Bulk rejection failed: ${error.message}`);
+    }
+};
+
+/**
  * Bulk unvalidate multiple job postings
  * @param {Array} jobPostingIds - Array of job posting IDs to unvalidate
  * @param {string} unvalidatedById - ID of the user performing unvalidation
@@ -887,7 +1080,7 @@ const bulkUnvalidateJobPostings = async (jobPostingIds, unvalidatedById) => {
           // Find the job posting
           const jobPosting = await prisma.jobPosting.findUnique({
             where: { id: jobPostingId },
-            select: { id: true, validation: true, title: true }
+            select: { id: true, postingId: true, validation: true, title: true }
           });
 
           if (!jobPosting) {
@@ -900,7 +1093,7 @@ const bulkUnvalidateJobPostings = async (jobPostingIds, unvalidatedById) => {
           }
 
           // Check if already unvalidated
-          if (jobPosting.validation === false) {
+          if (!jobPosting.validation || jobPosting.validation === 'pending') {
             errors.push({
               id: jobPostingId,
               error: 'Job posting already unvalidated'
@@ -913,7 +1106,7 @@ const bulkUnvalidateJobPostings = async (jobPostingIds, unvalidatedById) => {
           await prisma.jobPosting.update({
             where: { id: jobPostingId },
             data: {
-              validation: false,
+              validation: 'pending',
               modifiedById: unvalidatedById,
               updatedAt: new Date()
             }
@@ -1059,6 +1252,17 @@ const bulkAssignJobPostingsToEntities = async (jobPostingIds, entityIds, assigne
       // Create assignments
       const createdAssignments = await prisma.jobPostingAssignment.createMany({
         data: assignmentsData
+      });
+
+      // Update assignment field to true for all job postings that got assignments
+      const uniqueJobPostingIds = [...new Set(assignmentsData.map(a => a.jobPostingId))];
+      await prisma.jobPosting.updateMany({
+        where: {
+          id: { in: uniqueJobPostingIds }
+        },
+        data: {
+          assignment: true
+        }
       });
 
       // Get created assignments with details
@@ -1236,10 +1440,25 @@ const deleteJobPostingAssignment = async (assignmentId) => {
         throw new Error('Assignment not found');
       }
 
+      const jobPostingId = existingAssignment.jobPostingId;
+
       // Delete assignment
       await prisma.jobPostingAssignment.delete({
         where: { id: assignmentId }
       });
+
+      // Check if there are any remaining assignments for this job posting
+      const remainingAssignments = await prisma.jobPostingAssignment.count({
+        where: { jobPostingId }
+      });
+
+      // If no assignments remain, set assignment field to false
+      if (remainingAssignments === 0) {
+        await prisma.jobPosting.update({
+          where: { id: jobPostingId },
+          data: { assignment: false }
+        });
+      }
 
       return { success: true, message: 'Assignment deleted successfully' };
 
@@ -1356,6 +1575,12 @@ const createJobPostingAssignment = async (jobPostingId, entityId, assignedById, 
       }
     });
 
+    // Update assignment field to true for the job posting
+    await prisma.jobPosting.update({
+      where: { id: jobPostingId },
+      data: { assignment: true }
+    });
+
     return assignment;
   } catch (error) {
     console.error('Error creating job posting assignment:', error);
@@ -1387,6 +1612,7 @@ module.exports = {
   updateJobPostingValidation,
   bulkValidateJobPostings,
   bulkUnvalidateJobPostings,
+  bulkRejectJobPostings,
   bulkAssignJobPostingsToEntities,
   getJobPostingAssignments,
   updateJobPostingAssignment,

@@ -74,18 +74,22 @@ const createJobPostingSchema = z.object({
   additionalNotes: z.string().max(2000, 'Additional notes too long').optional(),
   createdById: z.string().cuid('Invalid created by user ID').optional(),
   modifiedById: z.string().cuid('Invalid modified by user ID').optional(),
-  statusId: z.string().cuid('Invalid status ID').optional(),
-  validation: z.boolean().default(false)
+  // statusId removed - will be auto-set to "New" status from database
+  // validation removed - will be auto-set to "pending" on creation
 });
 
 const updateJobPostingSchema = createJobPostingSchema.partial().omit({ 
   companyId: true
+}).extend({
+  statusId: z.string().cuid('Invalid status ID').optional(), // Allow updating statusId
+  validation: z.string().optional() // Allow updating validation status
 });
 
 // Job Posting Status validation schemas
 const createJobPostingStatusSchema = z.object({
   name: z.string().min(1, 'Status name is required').max(100, 'Status name too long'),
-  isActive: z.boolean().default(true)
+  isActive: z.boolean().default(true),
+  allowedFor: z.array(z.string()).default(['all']).optional() // Array of contexts: 'validation', 'followup', 'all'
 });
 
 const updateJobPostingStatusSchema = createJobPostingStatusSchema.partial();

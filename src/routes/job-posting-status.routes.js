@@ -22,7 +22,8 @@ const {
   deleteStatus,
   toggleStatus,
   getStatusStats,
-  searchStatuses
+  searchStatuses,
+  getStatusesByContext
 } = require('../controllers/job-posting-status.controller');
 
 // Apply authentication middleware to all routes
@@ -33,6 +34,9 @@ router.get('/', getStatuses);
 
 // GET /api/job-posting-statuses/search - Search statuses
 router.get('/search', searchStatuses);
+
+// GET /api/job-posting-statuses/context/:context - Get statuses by context (RA, validation, or followup)
+router.get('/context/:context', getStatusesByContext);
 
 // GET /api/job-posting-statuses/stats - Get status statistics
 router.get('/stats', getStatusStats);
